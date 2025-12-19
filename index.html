@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모임 지출 정산기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .sync-status {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+
+        .status-indicator.syncing {
+            background: #ff9800;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: #667eea;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .group-management {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .group-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .group-select {
+            flex: 1;
+        }
+
+        .group-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .group-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .group-item.active {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .group-item:hover {
+            border-color: #667eea;
+        }
+
+        .group-item-name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .delete-group {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .member-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .member-input input {
+            flex: 1;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        .member-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .member-tag {
+            background: #f0f0f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .remove-member {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .expense-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .expense-list {
+            margin-top: 20px;
+        }
+
+        .expense-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-info {
+            flex: 1;
+        }
+
+        .expense-info strong {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .expense-info .details {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .expense-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-right: 15px;
+        }
+
+        .delete-expense {
+            background: #ff6b6b;
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .summary-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-item .label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .settlement {
+            margin-top: 20px;
+        }
+
+        .settlement-item {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .settlement-item strong {
+            color: #856404;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .group-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="sync-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">동기화됨</span>
+            </div>
+            <h1>💰 모임 지출 정산기</h1>
+            <p>함께한 지출을 쉽고 공정하게 정산하세요</p>
+        </div>
+
+        <div class="content">
+            <!-- 정산 그룹 관리 -->
+            <div class="group-management">
+                <div class="section-title">📁 정산 그룹 관리</div>
+                <div class="group-actions">
+                    <select id="groupSelect" class="group-select">
+                        <option value="">정산 그룹 선택</option>
+                    </select>
+                    <button onclick="showNewGroupModal()">새 그룹 만들기</button>
+                    <button onclick="syncData()" class="secondary">🔄 새로고침</button>
+                </div>
+                <div class="group-list" id="groupList"></div>
+            </div>
+
+            <div id="mainContent" style="display: none;">
+                <!-- 구성원 추가 -->
+                <div class="section">
+                    <div class="section-title">👥 구성원 관리</div>
+                    <div class="member-input">
+                        <input type="text" id="memberName" placeholder="구성원 이름 입력">
+                        <button onclick="addMember()">추가</button>
+                    </div>
+                    <div class="member-list" id="memberList"></div>
+                </div>
+
+                <!-- 지출 내역 입력 -->
+                <div class="section">
+                    <div class="section-title">💳 지출 내역 추가</div>
+                    <div class="expense-form">
+                        <div class="form-row">
+                            <select id="expensePayer">
+                                <option value="">누가 냈나요?</option>
+                            </select>
+                            <input type="text" id="expenseDescription" placeholder="지출 내용 (예: 저녁식사)">
+                            <input type="text" id="expenseAmount" placeholder="금액 (원)">
+                        </div>
+                        <button onclick="addExpense()">지출 추가</button>
+                    </div>
+
+                    <div class="expense-list" id="expenseList"></div>
+                </div>
+
+                <!-- 정산 요약 -->
+                <div class="section">
+                    <div class="section-title">📊 정산 현황</div>
+                    <div class="summary">
+                        <h3 style="margin-bottom: 15px;">전체 요약</h3>
+                        <div class="summary-grid" id="summaryGrid"></div>
+                    </div>
+
+                    <div class="settlement" id="settlementResult"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 새 그룹 생성 모달 -->
+    <div id="newGroupModal" class="modal">
+        <div class="modal-content">
+            <h3>새 정산 그룹 만들기</h3>
+            <input type="text" id="newGroupName" placeholder="그룹 이름 (예: 제주도 여행)" style="width: 100%;">
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeNewGroupModal()">취소</button>
+                <button onclick="createNewGroup()">만들기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 기본 URL 설정 (Vercel 배포 시 자동으로 올바른 URL 사용)
+        const API_BASE = window.location.origin;
+
+        let groups = {};
+        let currentGroupId = null;
+        let syncInterval;
+
+        // 동기화 상태 표시
+        function setSyncStatus(syncing) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
+            
+            if (syncing) {
+                indicator.classList.add('syncing');
+                text.textContent = '동기화 중...';
+            } else {
+                indicator.classList.remove('syncing');
+                text.textContent = '동기화됨';
+            }
+        }
+
+        // API 호출 헬퍼
+        async function apiCall(endpoint, options = {}) {
+            setSyncStatus(true);
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API 오류: ${response.status}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API 호출 오류:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+                throw error;
+            } finally {
+                setSyncStatus(false);
+            }
+        }
+
+        // 데이터 동기화
+        async function syncData() {
+            try {
+                groups = await apiCall('/api/groups');
+                updateGroupList();
+                if (currentGroupId && groups[currentGroupId]) {
+                    loadGroup(currentGroupId, false);
+                }
+            } catch (error) {
+                console.error('동기화 오류:', error);
+            }
+        }
+
+        // 쿠키 저장
+        function setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+        }
+
+        // 쿠키 읽기
+        function getCookie(name) {
+            return document.cookie.split('; ').reduce((r, v) => {
+                const parts = v.split('=');
+                return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+            }, '');
+        }
+
+        // 새 그룹 모달 표시
+        function showNewGroupModal() {
+            document.getElementById('newGroupModal').classList.add('active');
+            document.getElementById('newGroupName').focus();
+        }
+
+        // 새 그룹 모달 닫기
+        function closeNewGroupModal() {
+            document.getElementById('newGroupModal').classList.remove('active');
+            document.getElementById('newGroupName').value = '';
+        }
+
+        // 새 그룹 생성
+        async function createNewGroup() {
+            const name = document.getElementById('newGroupName').value.trim();
+            if (!name) {
+                alert('그룹 이름을 입력해주세요.');
+                return;
+            }
+
+            try {
+                const group = await apiCall('/api/groups', {
+                    method: 'POST',
+                    body: JSON.stringify({ name })
+                });
+
+                groups[group.id] = group;
+                closeNewGroupModal();
+                loadGroup(group.id);
+                updateGroupList();
+            } catch (error) {
+                console.error('그룹 생성 오류:', error);
+            }
+        }
+
+        // 그룹 목록 업데이트
+        function updateGroupList() {
+            const select = document.getElementById('groupSelect');
+            const listDiv = document.getElementById('groupList');
+            
+            const groupArray = Object.values(groups).sort((a, b) => 
+                new Date(b.createdAt) - new Date(a.createdAt)
+            );
+            
+            select.innerHTML = '<option value="">정산 그룹 선택</option>' +
+                groupArray.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+            
+            if (currentGroupId) {
+                select.value = currentGroupId;
+            }
+            
+            if (groupArray.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">정산 그룹이 없습니다. 새로 만들어보세요!</div>';
+            } else {
+                listDiv.innerHTML = groupArray.map(g => `
+                    <div class="group-item ${g.id === currentGroupId ? 'active' : ''}" onclick="loadGroup('${g.id}')">
+                        <div class="group-item-name">${g.name}</div>
+                        <button class="delete-group" onclick="event.stopPropagation(); deleteGroup('${g.id}')">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // 그룹 로드
+        async function loadGroup(groupId, sync = true) {
+            if (sync) {
+                await syncData();
+            }
+            
+            if (!groups[groupId]) return;
+            
+            currentGroupId = groupId;
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('groupSelect').value = groupId;
+            
+            updateGroupList();
+            updateMemberList();
+            updatePayerSelect();
+            updateExpenseList();
+            calculateSettlement();
+            
+            const lastPayer = getCookie('lastPayer_' + groupId);
+            if (lastPayer) {
+                const payerSelect = document.getElementById('expensePayer');
+                if (payerSelect.querySelector(`option[value="${lastPayer}"]`)) {
+                    payerSelect.value = lastPayer;
+                }
+            }
+        }
+
+        // 그룹 삭제
+        async function deleteGroup(groupId) {
+            if (!confirm('정말 이 정산 그룹을 삭제하시겠습니까?')) return;
+            
+            try {
+                await apiCall(`/api/groups/${groupId}`, {
+                    method: 'DELETE'
+                });
+                
+                delete groups[groupId];
+                
+                if (currentGroupId === groupId) {
+                    currentGroupId = null;
+                    document.getElementById('mainContent').style.display = 'none';
+                }
+                
+                updateGroupList();
+            } catch (error) {
+                console.error('그룹 삭제 오류:', error);
+            }
+        }
+
+        // 그룹 선택 변경
+        document.getElementById('groupSelect').addEventListener('change', function() {
+            if (this.value) {
+                loadGroup(this.value);
+            }
+        });
+
+        // 구성원 추가
+        async function addMember() {
+            if (!currentGroupId) {
+                alert('먼저 정산 그룹을 선택하거나 만들어주세요.');
+                return;
+            }
+
+            const nameInput = document.getElementById('memberName');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+            
+            if (groups[currentGroupId].members.includes(name)) {
+                alert('이미 추가된 구성원입니다.');
+                return;
+            }
+            
+            try {
+                await apiCall(`/api/groups/${currentGroupId}/members`, {
+                    method: 'POST',
+                    body: JSON.stringify({ name })
+                });
+                
+                await syncData();
+                nameInput.value = '';
+            } catch (error) {
+                console.error('구성원 추가 오류:', error);
+            }
+        }
+
+        // 구성원 삭제
+        async function removeMember(name) {
+            const hasExpenses = groups[currentGroupId].expenses.some(e => e.payer === name);
+            if (hasExpenses) {
+                if (!confirm(`${name}님의 지출 내역이 있습니다. 정말 삭제하시겠습니까?`)) {
+                    return;
+                }
+            }
+            
+            try {
+                await apiCall(`/api/groups/${currentGroupId}/members/${encodeURIComponent(name)}`, {
+                    method: 'DELETE'
+                });
+                
+                await syncData();
+            } catch (error) {
+                console.error('구성원 삭제 오류:', error);
+            }
+        }
+
+        // 구성원 목록 업데이트
+        function updateMemberList() {
+            const listDiv = document.getElementById('memberList');
+            const members = groups[currentGroupId].members;
+            
+            if (members.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">아직 구성원이 없습니다. 구성원을 추가해주세요.</div>';
+                return;
+            }
+            
+            listDiv.innerHTML = members.map(name => `
+                <div class="member-tag">
+                    ${name}
+                    <button class="remove-member" onclick="removeMember('${name}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        // 지출자 선택 업데이트
+        function updatePayerSelect() {
+            const select = document.getElementById('expensePayer');
+            const members = groups[currentGroupId].members;
+            
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">누가 냈나요?</option>' +
+                members.map(name => `<option value="${name}">${name}</option>`).join('');
+            
+            if (currentValue && members.includes(currentValue)) {
+                select.value = currentValue;
+            } else {
+                const lastPayer = getCookie('lastPayer_' + currentGroupId);
+                if (lastPayer && members.includes(lastPayer)) {
+                    select.value = lastPayer;
+                }
+            }
+        }
+
+        // 금액 포맷팅
+        function formatAmount(value) {
+            const num = value.replace(/[^\d]/g, '');
+            return num.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        document.getElementById('expenseAmount').addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+            e.target.value = formatAmount(e.target.value);
+            const newLength = e.target.value.length;
+            e.target.setSelectionRange(cursorPos + (newLength - oldLength), cursorPos + (newLength - oldLength));
+        });
+
+        // 지출 추가
+        async function addExpense() {
+            if (!currentGroupId) {
+                alert('먼저 정산 그룹을 선택하거나 만들어주세요.');
+                return;
+            }
+
+            const payer = document.getElementById('expensePayer').value;
+            const description = document.getElementById('expenseDescription').value.trim();
+            const amountStr = document.getElementById('expenseAmount').value.replace(/,/g, '');
+            const amount = parseInt(amountStr);
+            
+            if (!payer) {
+                alert('지출한 사람을 선택해주세요.');
+                return;
+            }
+            
+            if (!description) {
+                alert('지출 내용을 입력해주세요.');
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                alert('올바른 금액을 입력해주세요.');
+                return;
+            }
+            
+            try {
+                await apiCall(`/api/groups/${currentGroupId}/expenses`, {
+                    method: 'POST',
+                    body: JSON.stringify({ payer, description, amount })
+                });
+
+                setCookie('lastPayer_' + currentGroupId, payer);
+                
+                document.getElementById('expenseDescription').value = '';
+                document.getElementById('expenseAmount').value = '';
+                
+                await syncData();
+            } catch (error) {
+                console.error('지출 추가 오류:', error);
+            }
+        }
+
+        // 지출 삭제
+        async function deleteExpense(id) {
+            try {
+                await apiCall(`/api/groups/${currentGroupId}/expenses/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                await syncData();
+            } catch (error) {
+                console.error('지출 삭제 오류:', error);
+            }
+        }
+
+        // 지출 목록 업데이트
+        function updateExpenseList() {
+            const listDiv = document.getElementById('expenseList');
+            const expenses = groups[currentGroupId].expenses;
+            
+            if (expenses.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">아직 지출 내역이 없습니다.</div>';
+                return;
+            }
+            
+            listDiv.innerHTML = expenses.map(expense => `
+                <div class="expense-item">
+                    <div class="expense-info">
+                        <strong>${expense.payer}</strong>
+                        <div class="details">${expense.description}</div>
+                    </div>
+                    <div class="expense-amount">${expense.amount.toLocaleString()}원</div>
+                    <button class="delete-expense" onclick="deleteExpense(${expense.id})">삭제</button>
+                </div>
+            `).join('');
+        }
+
+        // 정산 계산
+        function calculateSettlement() {
+            const summaryDiv = document.getElementById('summaryGrid');
+            const settlementDiv = document.getElementById('settlementResult');
+            
+            const members = groups[currentGroupId].members;
+            const expenses = groups[currentGroupId].expenses;
+            
+            if (members.length === 0 || expenses.length === 0) {
+                summaryDiv.innerHTML = '<div class="empty-state">데이터가 충분하지 않습니다.</div>';
+                settlementDiv.innerHTML = '';
+                return;
+            }
+            
+            const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const perPerson = totalAmount / members.length;
+            
+            const memberExpenses = {};
+            members.forEach(name => {
+                memberExpenses[name] = expenses
+                    .filter(e => e.payer === name)
+                    .reduce((sum, e) => sum + e.amount, 0);
+            });
+            
+            let summaryHTML = `
+                <div class="summary-item">
+                    <div class="label">총 지출</div>
+                    <div class="value">${totalAmount.toLocaleString()}원</div>
+                </div>
+                <div class="summary-item">
+                    <div class="label">1인당 부담액</div>
+                    <div class="value">${Math.round(perPerson).toLocaleString()}원</div>
+                </div>
+            `;
+            
+            members.forEach(name => {
+                summaryHTML += `
+                    <div class="summary-item">
+                        <div class="label">${name}님 지출</div>
+                        <div class="value">${memberExpenses[name].toLocaleString()}원</div>
+                    </div>
+                `;
+            });
+            
+            summaryDiv.innerHTML = summaryHTML;
+            
+            const balances = {};
+            members.forEach(name => {
+                balances[name] = memberExpenses[name] - perPerson;
+            });
+            
+            const debtors = [];
+            const creditors = [];
+            
+            members.forEach(name => {
+                if (balances[name] < -0.5) {
+                    debtors.push({ name, amount: -balances[name] });
+                } else if (balances[name] > 0.5) {
+                    creditors.push({ name, amount: balances[name] });
+                }
+            });
+            
+            let settlementHTML = '<h3 style="margin: 20px 0 15px 0;">💸 정산 방법</h3>';
+            
+            if (debtors.length === 0 && creditors.length === 0) {
+                settlementHTML += '<div class="settlement-item">모두 정확히 1/n씩 지출했습니다! 추가 정산이 필요없습니다. 👏</div>';
+            } else {
+                debtors.sort((a, b) => b.amount - a.amount);
+                creditors.sort((a, b) => b.amount - a.amount);
+                
+                let i = 0, j = 0;
+                while (i < debtors.length && j < creditors.length) {
+                    const debtor = debtors[i];
+                    const creditor = creditors[j];
+                    const amount = Math.min(debtor.amount, creditor.amount);
+                    
+                    settlementHTML += `
+                        <div class="settlement-item">
+                            <strong>${debtor.name}</strong>님 → <strong>${creditor.name}</strong>님께 
+                            <strong style="color: #d9534f;">${Math.round(amount).toLocaleString()}원</strong> 송금
+                        </div>
+                    `;
+                    
+                    debtor.amount -= amount;
+                    creditor.amount -= amount;
+                    
+                    if (debtor.amount < 0.5) i++;
+                    if (creditor.amount < 0.5) j++;
+                }
+            }
+            
+            settlementDiv.innerHTML = settlementHTML;
+        }
+
+        // Enter 키 이벤트
+        document.getElementById('memberName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addMember();
+        });
+
+        document.getElementById('newGroupName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') createNewGroup();
+        });
+
+        document.getElementById('expenseDescription').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') document.getElementById('expenseAmount').focus();
+        });
+
+        document.getElementById('expenseAmount').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addExpense();
+        });
+
+        // 모달 외부 클릭
+        document.getElementById('newGroupModal').addEventListener('click', function(e) {
+            if (e.target === this) closeNewGroupModal();
+        });
+
+        // 초기화 및 자동 동기화
+        syncData();
+        syncInterval = setInterval(syncData, 5000); // 5초마다 자동 동기화
+
+        // 페이지 떠날 때 정리
+        window.addEventListener('beforeunload', () => {
+            if (syncInterval) clearInterval(syncInterval);
+        });
+    </script>
+</body>
+</html>
