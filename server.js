@@ -123,7 +123,12 @@ app.delete('/api/groups/:id/expenses/:expenseId', (req, res) => {
 });
 
 // 정적 파일 제공
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 루트 경로 처리 (SPA용)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 404 핸들러
 app.use((req, res) => {
