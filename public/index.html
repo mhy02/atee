@@ -15,43 +15,44 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
         }
 
         .container {
             max-width: 900px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             overflow: hidden;
         }
 
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 30px;
+            padding: 20px 15px;
             text-align: center;
             position: relative;
         }
 
         .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 24px;
+            margin-bottom: 0;
         }
 
         .edit-mode-toggle {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top: 12px;
+            right: 12px;
             background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 14px;
             border: none;
             color: white;
             cursor: pointer;
             transition: all 0.3s;
+            font-weight: 500;
         }
 
         .edit-mode-toggle:hover {
@@ -63,17 +64,17 @@
         }
 
         .content {
-            padding: 30px;
+            padding: 20px 15px;
         }
 
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .section-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             color: #333;
             display: flex;
             align-items: center;
@@ -90,15 +91,15 @@
 
         .group-management {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
         }
 
         .group-actions {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+            gap: 8px;
+            margin-bottom: 0;
         }
 
         .group-select {
@@ -139,9 +140,9 @@
         }
 
         .remove-member {
-            width: 20px;
-            height: 20px;
-            font-size: 12px;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
         }
 
         .member-input {
@@ -151,10 +152,10 @@
         }
 
         input[type="text"], input[type="number"], select {
-            padding: 12px;
+            padding: 14px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 16px;
             transition: border-color 0.3s;
         }
 
@@ -168,16 +169,17 @@
         }
 
         button {
-            padding: 12px 24px;
+            padding: 14px 20px;
             background: #667eea;
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             white-space: nowrap;
+            min-height: 48px;
         }
 
         button:hover {
@@ -203,26 +205,26 @@
 
         .member-tag {
             background: #f0f0f0;
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
+            gap: 10px;
+            font-size: 15px;
         }
 
 
         .expense-form {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 15px;
+            border-radius: 12px;
             display: grid;
-            gap: 15px;
+            gap: 12px;
         }
 
         .form-row {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px;
         }
 
@@ -237,50 +239,60 @@
             border-radius: 10px;
             margin-bottom: 10px;
             display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .expense-item-top {
+            display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 10px;
         }
 
         .expense-info {
             flex: 1;
+            min-width: 0;
         }
 
         .expense-info strong {
             color: #667eea;
-            font-size: 16px;
+            font-size: 17px;
         }
 
         .expense-info .details {
             color: #666;
-            font-size: 14px;
-            margin-top: 5px;
+            font-size: 15px;
+            margin-top: 4px;
+            word-break: break-word;
         }
 
         .expense-amount {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             color: #333;
-            margin-right: 15px;
+            white-space: nowrap;
         }
 
         .delete-expense {
             background: #ff6b6b;
-            padding: 8px 16px;
-            font-size: 12px;
+            padding: 10px 18px;
+            font-size: 14px;
+            width: 100%;
         }
 
         .summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 25px;
-            border-radius: 15px;
+            padding: 20px 15px;
+            border-radius: 12px;
             margin-top: 20px;
         }
 
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 12px;
             margin-top: 15px;
         }
 
@@ -292,13 +304,13 @@
         }
 
         .summary-item .label {
-            font-size: 14px;
+            font-size: 15px;
             opacity: 0.9;
             margin-bottom: 5px;
         }
 
         .summary-item .value {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
         }
 
@@ -309,10 +321,11 @@
         .settlement-item {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
-            padding: 15px;
+            padding: 16px;
             margin-bottom: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 16px;
+            line-height: 1.5;
         }
 
         .settlement-item strong {
@@ -345,7 +358,7 @@
 
         .modal-content {
             background: white;
-            padding: 30px;
+            padding: 25px 20px;
             border-radius: 15px;
             max-width: 400px;
             width: 90%;
@@ -353,6 +366,7 @@
 
         .modal-content h3 {
             margin-bottom: 20px;
+            font-size: 20px;
         }
 
         .modal-actions {
@@ -365,17 +379,77 @@
             flex: 1;
         }
 
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
+        @media (min-width: 480px) {
             .summary-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
             }
 
-            .group-actions {
-                flex-direction: column;
+            .expense-item {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .expense-item-top {
+                flex: 1;
+            }
+
+            .delete-expense {
+                width: auto;
+                padding: 10px 18px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .container {
+                border-radius: 20px;
+            }
+
+            .header {
+                padding: 30px;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .content {
+                padding: 30px;
+            }
+
+            .section {
+                margin-bottom: 30px;
+            }
+
+            .section-title {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+
+            .group-management {
+                padding: 20px;
+                margin-bottom: 30px;
+            }
+
+            .expense-form {
+                padding: 20px;
+                gap: 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .summary {
+                padding: 25px;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
             }
         }
     </style>
@@ -585,19 +659,21 @@
             if (sync) {
                 await syncData();
             }
-            
+
             if (!groups[groupId]) return;
-            
+
             currentGroupId = groupId;
+            setCookie('lastGroupId', groupId);
+
             document.getElementById('mainContent').style.display = 'block';
             document.getElementById('groupSelect').value = groupId;
-            
+
             updateGroupList();
             updateMemberList();
             updatePayerSelect();
             updateExpenseList();
             calculateSettlement();
-            
+
             const lastPayer = getCookie('lastPayer_' + groupId);
             if (lastPayer) {
                 const payerSelect = document.getElementById('expensePayer');
@@ -819,11 +895,13 @@
             
             listDiv.innerHTML = expenses.map(expense => `
                 <div class="expense-item">
-                    <div class="expense-info">
-                        <strong>${expense.payer}</strong>
-                        <div class="details">${expense.description}</div>
+                    <div class="expense-item-top">
+                        <div class="expense-info">
+                            <strong>${expense.payer}</strong>
+                            <div class="details">${expense.description}</div>
+                        </div>
+                        <div class="expense-amount">${expense.amount.toLocaleString()}원</div>
                     </div>
-                    <div class="expense-amount">${expense.amount.toLocaleString()}원</div>
                     <button class="delete-expense" onclick="deleteExpense(${expense.id})">삭제</button>
                 </div>
             `).join('');
@@ -946,7 +1024,17 @@
         });
 
         // 초기화 및 자동 동기화
-        syncData();
+        async function initializeApp() {
+            await syncData();
+
+            // 마지막으로 선택한 그룹 자동 로드
+            const lastGroupId = getCookie('lastGroupId');
+            if (lastGroupId && groups[lastGroupId]) {
+                loadGroup(lastGroupId, false);
+            }
+        }
+
+        initializeApp();
         syncInterval = setInterval(syncData, 5000); // 5초마다 자동 동기화
 
         // 페이지 떠날 때 정리
