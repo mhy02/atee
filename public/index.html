@@ -1,4 +1,4 @@
-r<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -40,34 +40,26 @@ r<!DOCTYPE html>
             margin-bottom: 10px;
         }
 
-        .sync-status {
+        .edit-mode-toggle {
             position: absolute;
             top: 15px;
             right: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             background: rgba(255,255,255,0.2);
-            padding: 8px 12px;
+            padding: 8px 16px;
             border-radius: 20px;
             font-size: 12px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4caf50;
+        .edit-mode-toggle:hover {
+            background: rgba(255,255,255,0.3);
         }
 
-        .status-indicator.syncing {
-            background: #ff9800;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .edit-mode-toggle.active {
+            background: rgba(255,255,255,0.4);
         }
 
         .content {
@@ -113,40 +105,20 @@ r<!DOCTYPE html>
             flex: 1;
         }
 
-        .group-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 15px;
+        .delete-current-group {
+            display: none;
+            background: #ff6b6b;
         }
 
-        .group-item {
-            background: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 2px solid #e0e0e0;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .delete-current-group:hover {
+            background: #ff5252;
         }
 
-        .group-item.active {
-            border-color: #667eea;
-            background: #f0f3ff;
+        body.edit-mode .delete-current-group {
+            display: block;
         }
 
-        .group-item:hover {
-            border-color: #667eea;
-        }
-
-        .group-item-name {
-            flex: 1;
-            font-weight: 600;
-        }
-
-        .delete-group {
+        .delete-group, .remove-member {
             background: #ff6b6b;
             color: white;
             border: none;
@@ -155,10 +127,21 @@ r<!DOCTYPE html>
             height: 24px;
             cursor: pointer;
             font-size: 14px;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             padding: 0;
+        }
+
+        body.edit-mode .delete-group,
+        body.edit-mode .remove-member {
+            display: flex;
+        }
+
+        .remove-member {
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
         }
 
         .member-input {
@@ -228,20 +211,6 @@ r<!DOCTYPE html>
             font-size: 14px;
         }
 
-        .remove-member {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-        }
 
         .expense-form {
             background: #f8f9fa;
@@ -414,12 +383,8 @@ r<!DOCTYPE html>
 <body>
     <div class="container">
         <div class="header">
-            <div class="sync-status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">동기화됨</span>
-            </div>
+            <button class="edit-mode-toggle" id="editModeToggle" onclick="toggleEditMode()">편집</button>
             <h1>💰 모임 지출 정산기</h1>
-            <p>함께한 지출을 쉽고 공정하게 정산하세요</p>
         </div>
 
         <div class="content">
@@ -431,9 +396,8 @@ r<!DOCTYPE html>
                         <option value="">정산 그룹 선택</option>
                     </select>
                     <button onclick="showNewGroupModal()">새 그룹 만들기</button>
-                    <button onclick="syncData()" class="secondary">🔄 새로고침</button>
+                    <button class="delete-current-group" onclick="deleteCurrentGroup()">그룹 삭제</button>
                 </div>
-                <div class="group-list" id="groupList"></div>
             </div>
 
             <div id="mainContent" style="display: none;">
@@ -498,23 +462,21 @@ r<!DOCTYPE html>
         let currentGroupId = null;
         let syncInterval;
 
-        // 동기화 상태 표시
-        function setSyncStatus(syncing) {
-            const indicator = document.getElementById('statusIndicator');
-            const text = document.getElementById('statusText');
-            
-            if (syncing) {
-                indicator.classList.add('syncing');
-                text.textContent = '동기화 중...';
+        // 편집 모드 토글
+        function toggleEditMode() {
+            document.body.classList.toggle('edit-mode');
+            const button = document.getElementById('editModeToggle');
+            if (document.body.classList.contains('edit-mode')) {
+                button.textContent = '완료';
+                button.classList.add('active');
             } else {
-                indicator.classList.remove('syncing');
-                text.textContent = '동기화됨';
+                button.textContent = '편집';
+                button.classList.remove('active');
             }
         }
 
         // API 호출 헬퍼
         async function apiCall(endpoint, options = {}) {
-            setSyncStatus(true);
             try {
                 const response = await fetch(`${API_BASE}${endpoint}`, {
                     ...options,
@@ -523,18 +485,16 @@ r<!DOCTYPE html>
                         ...options.headers
                     }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`API 오류: ${response.status}`);
                 }
-                
+
                 return await response.json();
             } catch (error) {
                 console.error('API 호출 오류:', error);
                 alert('서버와 통신 중 오류가 발생했습니다.');
                 throw error;
-            } finally {
-                setSyncStatus(false);
             }
         }
 
@@ -603,28 +563,20 @@ r<!DOCTYPE html>
         // 그룹 목록 업데이트
         function updateGroupList() {
             const select = document.getElementById('groupSelect');
-            const listDiv = document.getElementById('groupList');
-            
-            const groupArray = Object.values(groups).sort((a, b) => 
+
+            const groupArray = Object.values(groups).sort((a, b) =>
                 new Date(b.createdAt) - new Date(a.createdAt)
             );
-            
+
+            const currentValue = select.value;
+
             select.innerHTML = '<option value="">정산 그룹 선택</option>' +
                 groupArray.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
-            
+
             if (currentGroupId) {
                 select.value = currentGroupId;
-            }
-            
-            if (groupArray.length === 0) {
-                listDiv.innerHTML = '<div class="empty-state">정산 그룹이 없습니다. 새로 만들어보세요!</div>';
-            } else {
-                listDiv.innerHTML = groupArray.map(g => `
-                    <div class="group-item ${g.id === currentGroupId ? 'active' : ''}" onclick="loadGroup('${g.id}')">
-                        <div class="group-item-name">${g.name}</div>
-                        <button class="delete-group" onclick="event.stopPropagation(); deleteGroup('${g.id}')">×</button>
-                    </div>
-                `).join('');
+            } else if (currentValue) {
+                select.value = currentValue;
             }
         }
 
@@ -655,22 +607,31 @@ r<!DOCTYPE html>
             }
         }
 
+        // 현재 그룹 삭제
+        function deleteCurrentGroup() {
+            if (!currentGroupId) {
+                alert('삭제할 그룹을 먼저 선택해주세요.');
+                return;
+            }
+            deleteGroup(currentGroupId);
+        }
+
         // 그룹 삭제
         async function deleteGroup(groupId) {
             if (!confirm('정말 이 정산 그룹을 삭제하시겠습니까?')) return;
-            
+
             try {
                 await apiCall(`/api/groups/${groupId}`, {
                     method: 'DELETE'
                 });
-                
+
                 delete groups[groupId];
-                
+
                 if (currentGroupId === groupId) {
                     currentGroupId = null;
                     document.getElementById('mainContent').style.display = 'none';
                 }
-                
+
                 updateGroupList();
             } catch (error) {
                 console.error('그룹 삭제 오류:', error);
