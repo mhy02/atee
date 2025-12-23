@@ -22,7 +22,7 @@
             max-width: 900px;
             margin: 0 auto;
             background: white;
-            border-radius: 8px;
+            border-radius: 2px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
         }
@@ -48,7 +48,7 @@
             right: 10px;
             background: rgba(255,255,255,0.15);
             padding: 5px 10px;
-            border-radius: 4px;
+            border-radius: 2px;
             font-size: 12px;
             border: none;
             color: white;
@@ -91,12 +91,55 @@
             border-radius: 1px;
         }
 
-        .group-management {
+        .collapsible-header {
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            transition: all 0.2s;
+        }
+
+        .collapsible-header:hover {
+            opacity: 0.7;
+        }
+
+        .toggle-icon {
+            font-size: 12px;
+            margin-left: 8px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .sub-section {
             background: #fafafa;
             padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 12px;
+            border-radius: 2px;
+            margin-bottom: 10px;
             border: 1px solid #e8e8e8;
+        }
+
+        .sub-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #34495e;
         }
 
         .group-actions {
@@ -157,7 +200,7 @@
         input[type="text"], input[type="number"], select {
             padding: 8px 10px;
             border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 2px;
             font-size: 14px;
             transition: border-color 0.2s;
         }
@@ -176,7 +219,7 @@
             background: #3498db;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 2px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
@@ -207,7 +250,7 @@
         .member-tag {
             background: #ecf0f1;
             padding: 5px 10px;
-            border-radius: 4px;
+            border-radius: 2px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -218,7 +261,7 @@
         .expense-form {
             background: #fafafa;
             padding: 10px;
-            border-radius: 6px;
+            border-radius: 2px;
             display: grid;
             gap: 6px;
             border: 1px solid #e8e8e8;
@@ -238,7 +281,7 @@
             background: white;
             border: 1px solid #e8e8e8;
             padding: 8px;
-            border-radius: 4px;
+            border-radius: 2px;
             margin-bottom: 5px;
             display: flex;
             flex-direction: column;
@@ -289,7 +332,7 @@
             background: #34495e;
             color: white;
             padding: 10px;
-            border-radius: 6px;
+            border-radius: 2px;
             margin-top: 12px;
             border: 1px solid #2c3e50;
         }
@@ -310,7 +353,7 @@
         .summary-item {
             background: rgba(255,255,255,0.1);
             padding: 8px;
-            border-radius: 4px;
+            border-radius: 2px;
             border: 1px solid rgba(255,255,255,0.1);
         }
 
@@ -340,7 +383,7 @@
             border-left: 3px solid #f39c12;
             padding: 8px 10px;
             margin-bottom: 5px;
-            border-radius: 4px;
+            border-radius: 2px;
             font-size: 12px;
             line-height: 1.4;
         }
@@ -376,7 +419,7 @@
         .modal-content {
             background: white;
             padding: 18px 15px;
-            border-radius: 6px;
+            border-radius: 2px;
             max-width: 400px;
             width: 90%;
         }
@@ -423,7 +466,7 @@
             }
 
             .container {
-                border-radius: 10px;
+                border-radius: 2px;
             }
 
             .header {
@@ -484,30 +527,25 @@
         </div>
 
         <div class="content">
-            <!-- 정산 그룹 관리 -->
-            <div class="group-management">
-                <div class="section-title">📁 정산 그룹 관리</div>
-                <div class="group-actions">
-                    <select id="groupSelect" class="group-select">
-                        <option value="">정산 그룹 선택</option>
-                    </select>
-                    <button onclick="showNewGroupModal()">새 그룹 만들기</button>
-                    <button class="delete-current-group" onclick="deleteCurrentGroup()">그룹 삭제</button>
-                </div>
+            <!-- 정산 그룹 선택 -->
+            <div class="section">
+                <select id="groupSelect" class="group-select" style="width: 100%;">
+                    <option value="">정산 그룹 선택</option>
+                </select>
             </div>
 
             <div id="mainContent" style="display: none;">
-                <!-- 구성원 추가 -->
+                <!-- 정산 현황 (최상단) -->
                 <div class="section">
-                    <div class="section-title">👥 구성원 관리</div>
-                    <div class="member-input">
-                        <input type="text" id="memberName" placeholder="구성원 이름 입력">
-                        <button onclick="addMember()">추가</button>
+                    <div class="section-title">📊 정산 현황</div>
+                    <div class="summary">
+                        <h3 style="margin-bottom: 8px;">전체 요약</h3>
+                        <div class="summary-grid" id="summaryGrid"></div>
                     </div>
-                    <div class="member-list" id="memberList"></div>
+                    <div class="settlement" id="settlementResult"></div>
                 </div>
 
-                <!-- 지출 내역 입력 -->
+                <!-- 지출 내역 추가 -->
                 <div class="section">
                     <div class="section-title">💳 지출 내역 추가</div>
                     <div class="expense-form">
@@ -520,19 +558,35 @@
                         </div>
                         <button onclick="addExpense()">지출 추가</button>
                     </div>
-
                     <div class="expense-list" id="expenseList"></div>
                 </div>
 
-                <!-- 정산 요약 -->
-                <div class="section">
-                    <div class="section-title">📊 정산 현황</div>
-                    <div class="summary">
-                        <h3 style="margin-bottom: 15px;">전체 요약</h3>
-                        <div class="summary-grid" id="summaryGrid"></div>
+                <!-- 관리 메뉴 (축소 가능) -->
+                <div class="section collapsible-section">
+                    <div class="section-title collapsible-header" onclick="toggleSection('managementSection')">
+                        <span>⚙️ 관리</span>
+                        <span class="toggle-icon" id="managementToggle">▼</span>
                     </div>
+                    <div class="collapsible-content" id="managementSection">
+                        <!-- 구성원 관리 -->
+                        <div class="sub-section">
+                            <div class="sub-section-title">👥 구성원 관리</div>
+                            <div class="member-input">
+                                <input type="text" id="memberName" placeholder="구성원 이름 입력">
+                                <button onclick="addMember()">추가</button>
+                            </div>
+                            <div class="member-list" id="memberList"></div>
+                        </div>
 
-                    <div class="settlement" id="settlementResult"></div>
+                        <!-- 그룹 관리 -->
+                        <div class="sub-section">
+                            <div class="sub-section-title">📁 그룹 관리</div>
+                            <div class="group-actions">
+                                <button onclick="showNewGroupModal()" style="flex: 1;">새 그룹 만들기</button>
+                                <button class="delete-current-group" onclick="deleteCurrentGroup()" style="flex: 1;">그룹 삭제</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -569,6 +623,15 @@
                 button.textContent = '편집';
                 button.classList.remove('active');
             }
+        }
+
+        // 섹션 축소/확장 토글
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            const toggle = document.getElementById(sectionId.replace('Section', 'Toggle'));
+
+            content.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
         }
 
         // API 호출 헬퍼
