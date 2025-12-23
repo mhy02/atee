@@ -42,28 +42,6 @@
             font-weight: 600;
         }
 
-        .edit-mode-toggle {
-            position: absolute;
-            top: 8px;
-            right: 10px;
-            background: rgba(255,255,255,0.15);
-            padding: 5px 10px;
-            border-radius: 2px;
-            font-size: 12px;
-            border: none;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-
-        .edit-mode-toggle:hover {
-            background: rgba(255,255,255,0.25);
-        }
-
-        .edit-mode-toggle.active {
-            background: rgba(255,255,255,0.3);
-        }
 
         .content {
             padding: 12px 10px;
@@ -153,16 +131,11 @@
         }
 
         .delete-current-group {
-            display: none;
             background: #e74c3c;
         }
 
         .delete-current-group:hover {
             background: #c0392b;
-        }
-
-        body.edit-mode .delete-current-group {
-            display: block;
         }
 
         .delete-group, .remove-member {
@@ -174,15 +147,10 @@
             height: 20px;
             cursor: pointer;
             font-size: 11px;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
-        }
-
-        body.edit-mode .delete-group,
-        body.edit-mode .remove-member {
-            display: flex;
         }
 
         .remove-member {
@@ -326,6 +294,11 @@
             font-size: 12px;
             width: 100%;
             min-height: 30px;
+            display: block;
+        }
+
+        .delete-expense:hover {
+            background: #c0392b;
         }
 
         .summary {
@@ -355,6 +328,11 @@
             padding: 8px;
             border-radius: 2px;
             border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .summary-item.primary {
+            background: rgba(52, 152, 219, 0.3);
+            border: 1px solid rgba(52, 152, 219, 0.5);
         }
 
         .summary-item .label {
@@ -522,29 +500,21 @@
 <body>
     <div class="container">
         <div class="header">
-            <button class="edit-mode-toggle" id="editModeToggle" onclick="toggleEditMode()">편집</button>
             <h1>💰 모임 지출 정산기</h1>
         </div>
 
         <div class="content">
             <!-- 정산 그룹 선택 -->
             <div class="section">
-                <select id="groupSelect" class="group-select" style="width: 100%;">
-                    <option value="">정산 그룹 선택</option>
-                </select>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <select id="groupSelect" class="group-select" style="flex: 1;">
+                        <option value="">정산 그룹 선택</option>
+                    </select>
+                    <button onclick="showNewGroupModal()" style="white-space: nowrap;">+ 새 그룹</button>
+                </div>
             </div>
 
             <div id="mainContent" style="display: none;">
-                <!-- 정산 현황 (최상단) -->
-                <div class="section">
-                    <div class="section-title">📊 정산 현황</div>
-                    <div class="summary">
-                        <h3 style="margin-bottom: 8px;">전체 요약</h3>
-                        <div class="summary-grid" id="summaryGrid"></div>
-                    </div>
-                    <div class="settlement" id="settlementResult"></div>
-                </div>
-
                 <!-- 지출 내역 추가 -->
                 <div class="section">
                     <div class="section-title">💳 지출 내역 추가</div>
@@ -561,13 +531,23 @@
                     <div class="expense-list" id="expenseList"></div>
                 </div>
 
+                <!-- 정산 현황 -->
+                <div class="section">
+                    <div class="section-title">📊 정산 현황</div>
+                    <div class="summary">
+                        <h3 style="margin-bottom: 8px;">전체 요약</h3>
+                        <div class="summary-grid" id="summaryGrid"></div>
+                    </div>
+                    <div class="settlement" id="settlementResult"></div>
+                </div>
+
                 <!-- 관리 메뉴 (축소 가능) -->
                 <div class="section collapsible-section">
                     <div class="section-title collapsible-header" onclick="toggleSection('managementSection')">
                         <span>⚙️ 관리</span>
-                        <span class="toggle-icon" id="managementToggle">▼</span>
+                        <span class="toggle-icon collapsed" id="managementToggle">▼</span>
                     </div>
-                    <div class="collapsible-content" id="managementSection">
+                    <div class="collapsible-content collapsed" id="managementSection">
                         <!-- 구성원 관리 -->
                         <div class="sub-section">
                             <div class="sub-section-title">👥 구성원 관리</div>
@@ -581,10 +561,7 @@
                         <!-- 그룹 관리 -->
                         <div class="sub-section">
                             <div class="sub-section-title">📁 그룹 관리</div>
-                            <div class="group-actions">
-                                <button onclick="showNewGroupModal()" style="flex: 1;">새 그룹 만들기</button>
-                                <button class="delete-current-group" onclick="deleteCurrentGroup()" style="flex: 1;">그룹 삭제</button>
-                            </div>
+                            <button class="delete-current-group" onclick="deleteCurrentGroup()" style="width: 100%;">현재 그룹 삭제</button>
                         </div>
                     </div>
                 </div>
@@ -611,19 +588,6 @@
         let groups = {};
         let currentGroupId = null;
         let syncInterval;
-
-        // 편집 모드 토글
-        function toggleEditMode() {
-            document.body.classList.toggle('edit-mode');
-            const button = document.getElementById('editModeToggle');
-            if (document.body.classList.contains('edit-mode')) {
-                button.textContent = '완료';
-                button.classList.add('active');
-            } else {
-                button.textContent = '편집';
-                button.classList.remove('active');
-            }
-        }
 
         // 섹션 축소/확장 토글
         function toggleSection(sectionId) {
@@ -1017,11 +981,11 @@
             });
             
             let summaryHTML = `
-                <div class="summary-item">
+                <div class="summary-item primary">
                     <div class="label">총 지출</div>
                     <div class="value">${totalAmount.toLocaleString()}원</div>
                 </div>
-                <div class="summary-item">
+                <div class="summary-item primary">
                     <div class="label">1인당 부담액</div>
                     <div class="value">${Math.round(perPerson).toLocaleString()}원</div>
                 </div>
