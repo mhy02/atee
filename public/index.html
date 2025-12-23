@@ -28,12 +28,12 @@
         }
 
         .header {
-            background: #2c3e50;
-            color: white;
+            background: #b8c5d6;
+            color: #4a5568;
             padding: 14px 12px;
             text-align: center;
             position: relative;
-            border-bottom: 1px solid #34495e;
+            border-bottom: 1px solid #a3b4c8;
         }
 
         .header h1 {
@@ -55,18 +55,9 @@
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #2c3e50;
+            color: #5a6c7d;
             display: flex;
             align-items: center;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 3px;
-            height: 14px;
-            background: #3498db;
-            margin-right: 6px;
-            border-radius: 1px;
         }
 
         .collapsible-header {
@@ -117,7 +108,7 @@
             font-size: 13px;
             font-weight: 600;
             margin-bottom: 8px;
-            color: #34495e;
+            color: #5a6c7d;
         }
 
         .group-actions {
@@ -131,32 +122,30 @@
         }
 
         .delete-current-group {
-            background: #e74c3c;
+            background: #f5b7b1;
         }
 
         .delete-current-group:hover {
-            background: #c0392b;
+            background: #eca9a0;
         }
 
         .delete-group, .remove-member {
-            background: #e74c3c;
-            color: white;
+            background: #f5b7b1;
+            color: #721c24;
             border: none;
             border-radius: 50%;
             width: 20px;
             height: 20px;
+            min-width: 20px;
+            min-height: 20px;
             cursor: pointer;
             font-size: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
-        }
-
-        .remove-member {
-            width: 20px;
-            height: 20px;
-            font-size: 11px;
+            flex-shrink: 0;
+            line-height: 1;
         }
 
         .member-input {
@@ -184,8 +173,8 @@
 
         button {
             padding: 8px 14px;
-            background: #3498db;
-            color: white;
+            background: #a8d5e2;
+            color: #2c5f6f;
             border: none;
             border-radius: 2px;
             font-size: 13px;
@@ -197,15 +186,15 @@
         }
 
         button:hover {
-            background: #2980b9;
+            background: #93c5d6;
         }
 
         button.secondary {
-            background: #95a5a6;
+            background: #cbd5e0;
         }
 
         button.secondary:hover {
-            background: #7f8c8d;
+            background: #b8c5d6;
         }
 
         .member-list {
@@ -259,7 +248,7 @@
         .expense-item-top {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             gap: 8px;
         }
 
@@ -269,13 +258,13 @@
         }
 
         .expense-info strong {
-            color: #2c3e50;
+            color: #5a6c7d;
             font-size: 13px;
             font-weight: 600;
         }
 
         .expense-info .details {
-            color: #7f8c8d;
+            color: #8896a4;
             font-size: 12px;
             margin-top: 2px;
             word-break: break-word;
@@ -284,12 +273,13 @@
         .expense-amount {
             font-size: 15px;
             font-weight: 700;
-            color: #2c3e50;
+            color: #5a6c7d;
             white-space: nowrap;
         }
 
         .delete-expense {
-            background: #e74c3c;
+            background: #f5b7b1;
+            color: #721c24;
             padding: 5px 10px;
             font-size: 12px;
             width: 100%;
@@ -298,16 +288,16 @@
         }
 
         .delete-expense:hover {
-            background: #c0392b;
+            background: #eca9a0;
         }
 
         .summary {
-            background: #34495e;
-            color: white;
+            background: #d4dfe8;
+            color: #4a5568;
             padding: 10px;
             border-radius: 2px;
             margin-top: 12px;
-            border: 1px solid #2c3e50;
+            border: 1px solid #b8c5d6;
         }
 
         .summary h3 {
@@ -324,15 +314,15 @@
         }
 
         .summary-item {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.5);
             padding: 8px;
             border-radius: 2px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(184,197,214,0.3);
         }
 
         .summary-item.primary {
-            background: rgba(52, 152, 219, 0.3);
-            border: 1px solid rgba(52, 152, 219, 0.5);
+            background: #b8d4e8;
+            border: 1px solid #a8d5e2;
         }
 
         .summary-item .label {
@@ -357,8 +347,8 @@
         }
 
         .settlement-item {
-            background: #fef9e7;
-            border-left: 3px solid #f39c12;
+            background: #fef4e8;
+            border-left: 3px solid #f9dca4;
             padding: 8px 10px;
             margin-bottom: 5px;
             border-radius: 2px;
@@ -367,7 +357,7 @@
         }
 
         .settlement-item strong {
-            color: #d68910;
+            color: #c49a6c;
         }
 
         .empty-state {
@@ -405,7 +395,7 @@
         .modal-content h3 {
             margin-bottom: 12px;
             font-size: 16px;
-            color: #2c3e50;
+            color: #5a6c7d;
         }
 
         .modal-actions {
@@ -500,7 +490,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 모임 지출 정산기</h1>
+            <h1>모임 지출 정산기</h1>
         </div>
 
         <div class="content">
@@ -517,7 +507,7 @@
             <div id="mainContent" style="display: none;">
                 <!-- 지출 내역 추가 -->
                 <div class="section">
-                    <div class="section-title">💳 지출 내역 추가</div>
+                    <div class="section-title">지출 내역 추가</div>
                     <div class="expense-form">
                         <div class="form-row">
                             <select id="expensePayer">
@@ -533,7 +523,7 @@
 
                 <!-- 정산 현황 -->
                 <div class="section">
-                    <div class="section-title">📊 정산 현황</div>
+                    <div class="section-title">정산 현황</div>
                     <div class="summary">
                         <h3 style="margin-bottom: 8px;">전체 요약</h3>
                         <div class="summary-grid" id="summaryGrid"></div>
@@ -544,13 +534,13 @@
                 <!-- 관리 메뉴 (축소 가능) -->
                 <div class="section collapsible-section">
                     <div class="section-title collapsible-header" onclick="toggleSection('managementSection')">
-                        <span>⚙️ 관리</span>
+                        <span>관리</span>
                         <span class="toggle-icon collapsed" id="managementToggle">▼</span>
                     </div>
                     <div class="collapsible-content collapsed" id="managementSection">
                         <!-- 구성원 관리 -->
                         <div class="sub-section">
-                            <div class="sub-section-title">👥 구성원 관리</div>
+                            <div class="sub-section-title">구성원 관리</div>
                             <div class="member-input">
                                 <input type="text" id="memberName" placeholder="구성원 이름 입력">
                                 <button onclick="addMember()">추가</button>
@@ -560,7 +550,7 @@
 
                         <!-- 그룹 관리 -->
                         <div class="sub-section">
-                            <div class="sub-section-title">📁 그룹 관리</div>
+                            <div class="sub-section-title">그룹 관리</div>
                             <button class="delete-current-group" onclick="deleteCurrentGroup()" style="width: 100%;">현재 그룹 삭제</button>
                         </div>
                     </div>
@@ -1018,10 +1008,10 @@
                 }
             });
             
-            let settlementHTML = '<h3 style="margin: 20px 0 15px 0;">💸 정산 방법</h3>';
-            
+            let settlementHTML = '<h3 style="margin: 20px 0 15px 0;">정산 방법</h3>';
+
             if (debtors.length === 0 && creditors.length === 0) {
-                settlementHTML += '<div class="settlement-item">모두 정확히 1/n씩 지출했습니다! 추가 정산이 필요없습니다. 👏</div>';
+                settlementHTML += '<div class="settlement-item">모두 정확히 1/n씩 지출했습니다! 추가 정산이 필요없습니다.</div>';
             } else {
                 debtors.sort((a, b) => b.amount - a.amount);
                 creditors.sort((a, b) => b.amount - a.amount);
