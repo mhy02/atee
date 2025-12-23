@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>앱 이름 - aTee Apps</title>
+    <style>
+        /* aTee Apps 공통 스타일 */
+        :root {
+            --background: #f5f5f5;
+            --surface: #ffffff;
+            --surface-alt: #f8f9fa;
+            --header-bg: #b8c5d6;
+            --header-border: #a3b4c8;
+            --header-text: #4a5568;
+            --text-primary: #495057;
+            --text-secondary: #6c757d;
+            --text-tertiary: #8896a4;
+            --border-light: #e9ecef;
+            --border-medium: #e8e8e8;
+            --border-dark: #ddd;
+            --btn-primary-bg: #a8d5e2;
+            --btn-primary-hover: #93c5d6;
+            --btn-primary-text: #2c5f6f;
+            --btn-secondary-bg: #cbd5e0;
+            --btn-secondary-hover: #b8c5d6;
+            --btn-delete-bg: #f5b7b1;
+            --btn-delete-hover: #eca9a0;
+            --btn-delete-text: #721c24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            min-height: 100vh;
+            padding: 8px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--surface);
+            border-radius: 2px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 14px 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--header-border);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .content {
+            padding: 12px 10px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 12px;
+            background: var(--surface-alt);
+            border-radius: 4px;
+            border: 1px solid var(--border-light);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 8px 10px;
+            border: 1px solid var(--border-dark);
+            border-radius: 2px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            padding: 8px 14px;
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            border: none;
+            border-radius: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            min-height: 36px;
+        }
+
+        button:hover {
+            background: var(--btn-primary-hover);
+        }
+
+        button.secondary {
+            background: var(--btn-secondary-bg);
+        }
+
+        button.secondary:hover {
+            background: var(--btn-secondary-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #95a5a6;
+            padding: 20px;
+            font-size: 12px;
+        }
+
+        /* 모달 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 18px 15px;
+            border-radius: 2px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: var(--text-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        /* 반응형 */
+        @media (min-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 18px 20px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .content {
+                padding: 18px 16px;
+            }
+        }
+
+        /* 앱별 커스텀 스타일은 여기에 추가하세요 */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>앱 이름</h1>
+        </div>
+
+        <div class="content">
+            <!-- 첫 번째 섹션 예시 -->
+            <div class="section">
+                <div class="section-title">섹션 제목</div>
+
+                <!-- 여기에 앱 컨텐츠를 추가하세요 -->
+                <div class="empty-state">아직 데이터가 없습니다.</div>
+            </div>
+
+            <!-- 두 번째 섹션 예시 -->
+            <div class="section">
+                <div class="section-title">또 다른 섹션</div>
+
+                <!-- 입력 폼 예시 -->
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" placeholder="입력하세요" style="flex: 1;">
+                    <button>추가</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 예시 -->
+    <div id="exampleModal" class="modal">
+        <div class="modal-content">
+            <h3>모달 제목</h3>
+            <input type="text" id="modalInput" placeholder="입력하세요" style="width: 100%;">
+            <div class="modal-actions">
+                <button class="secondary" onclick="closeModal()">취소</button>
+                <button onclick="confirmModal()">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API 기본 URL
+        const API_BASE = window.location.origin;
+
+        // 모달 열기
+        function openModal() {
+            document.getElementById('exampleModal').classList.add('active');
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('exampleModal').classList.remove('active');
+            document.getElementById('modalInput').value = '';
+        }
+
+        // 모달 확인
+        function confirmModal() {
+            const value = document.getElementById('modalInput').value.trim();
+            if (!value) {
+                alert('값을 입력해주세요.');
+                return;
+            }
+
+            // 여기에 처리 로직 추가
+            console.log('입력값:', value);
+            closeModal();
+        }
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('exampleModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // API 호출 헬퍼 함수
+        async function apiCall(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 오류: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API 호출 오류:', error);
+                alert('서버와 통신 중 오류가 발생했습니다.');
+                throw error;
+            }
+        }
+
+        // 앱 초기화
+        function initializeApp() {
+            console.log('앱 초기화 완료');
+            // 여기에 초기화 로직 추가
+        }
+
+        // 페이지 로드 시 초기화
+        initializeApp();
+    </script>
+</body>
+</html>
