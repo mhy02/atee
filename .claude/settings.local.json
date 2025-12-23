@@ -10,7 +10,8 @@
       "WebFetch(domain:atee-ten.vercel.app)",
       "Bash(git merge:*)",
       "Bash(node server.js:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(cat:*)"
     ]
   }
 }
