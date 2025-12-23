@@ -133,19 +133,20 @@
             background: #f5b7b1;
             color: #721c24;
             border: none;
-            border-radius: 50%;
+            border-radius: 2px;
             width: 20px;
             height: 20px;
             min-width: 20px;
             min-height: 20px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
             flex-shrink: 0;
             line-height: 1;
+            font-weight: 600;
         }
 
         .member-input {
@@ -490,17 +491,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>모임 지출 정산기</h1>
+            <h1>그룹 지출 정산기</h1>
         </div>
 
         <div class="content">
-            <!-- 정산 그룹 선택 -->
+            <!-- 그룹 선택 -->
             <div class="section">
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <select id="groupSelect" class="group-select" style="flex: 1;">
-                        <option value="">정산 그룹 선택</option>
+                        <option value="">그룹 선택</option>
                     </select>
-                    <button onclick="showNewGroupModal()" style="white-space: nowrap;">+ 새 그룹</button>
+                    <button onclick="showNewGroupModal()" style="white-space: nowrap;">새 그룹</button>
                 </div>
             </div>
 
@@ -562,7 +563,7 @@
     <!-- 새 그룹 생성 모달 -->
     <div id="newGroupModal" class="modal">
         <div class="modal-content">
-            <h3>새 정산 그룹 만들기</h3>
+            <h3>새 그룹 만들기</h3>
             <input type="text" id="newGroupName" placeholder="그룹 이름 (예: 제주도 여행)" style="width: 100%;">
             <div class="modal-actions">
                 <button class="secondary" onclick="closeNewGroupModal()">취소</button>
@@ -683,7 +684,7 @@
 
             const currentValue = select.value;
 
-            select.innerHTML = '<option value="">정산 그룹 선택</option>' +
+            select.innerHTML = '<option value="">그룹 선택</option>' +
                 groupArray.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
 
             if (currentGroupId) {
@@ -733,7 +734,7 @@
 
         // 그룹 삭제
         async function deleteGroup(groupId) {
-            if (!confirm('정말 이 정산 그룹을 삭제하시겠습니까?')) return;
+            if (!confirm('정말 이 그룹을 삭제하시겠습니까?')) return;
 
             try {
                 await apiCall(`/api/groups/${groupId}`, {
@@ -763,7 +764,7 @@
         // 구성원 추가
         async function addMember() {
             if (!currentGroupId) {
-                alert('먼저 정산 그룹을 선택하거나 만들어주세요.');
+                alert('먼저 그룹을 선택하거나 만들어주세요.');
                 return;
             }
 
@@ -868,7 +869,7 @@
         // 지출 추가
         async function addExpense() {
             if (!currentGroupId) {
-                alert('먼저 정산 그룹을 선택하거나 만들어주세요.');
+                alert('먼저 그룹을 선택하거나 만들어주세요.');
                 return;
             }
 
@@ -984,7 +985,7 @@
             members.forEach(name => {
                 summaryHTML += `
                     <div class="summary-item">
-                        <div class="label">${name}님 지출</div>
+                        <div class="label"><strong>${name}</strong>님 지출</div>
                         <div class="value">${memberExpenses[name].toLocaleString()}원</div>
                     </div>
                 `;
