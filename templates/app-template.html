@@ -202,6 +202,9 @@
     <div class="container">
         <div class="header">
             <h1>앱 이름</h1>
+            <button onclick="refreshData()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 12px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
+                🔄 새로고침
+            </button>
         </div>
 
         <div class="content">
@@ -293,6 +296,13 @@
             }
         }
 
+        // 데이터 새로고침
+        function refreshData() {
+            console.log('데이터 새로고침');
+            // 여기에 데이터 새로고침 로직 추가
+            // 예: API 호출하여 최신 데이터 가져오기
+        }
+
         // 앱 초기화
         function initializeApp() {
             console.log('앱 초기화 완료');
@@ -301,6 +311,9 @@
 
         // 페이지 로드 시 초기화
         initializeApp();
+
+        // 참고: 자동 폴링은 Redis 조회량 문제로 사용하지 않습니다.
+        // 필요시 사용자가 수동으로 새로고침 버튼을 클릭하도록 합니다.
     </script>
 </body>
 </html>

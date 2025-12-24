@@ -501,6 +501,9 @@
     <div class="container">
         <div class="header">
             <h1>그룹 지출 정산기</h1>
+            <button onclick="syncData()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 12px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
+                🔄 새로고침
+            </button>
         </div>
 
         <div class="content">
@@ -587,7 +590,6 @@
 
         let groups = {};
         let currentGroupId = null;
-        let syncInterval;
 
         // 섹션 축소/확장 토글
         function toggleSection(sectionId) {
@@ -1083,12 +1085,6 @@
         }
 
         initializeApp();
-        syncInterval = setInterval(syncData, 5000); // 5초마다 자동 동기화
-
-        // 페이지 떠날 때 정리
-        window.addEventListener('beforeunload', () => {
-            if (syncInterval) clearInterval(syncInterval);
-        });
     </script>
 </body>
 </html>
