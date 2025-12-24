@@ -502,7 +502,7 @@
         <div class="header">
             <h1>그룹 지출 정산기</h1>
             <button id="refreshBtn" onclick="manualSync()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 10px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
-                갱신
+                새로고침
             </button>
         </div>
 
@@ -584,12 +584,36 @@
         </div>
     </div>
 
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(245, 245, 245, 0.95); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="text-align: center;">
+            <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid #e9ecef; border-top: 3px solid #b8c5d6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <div style="margin-top: 12px; color: #6c757d; font-size: 13px;">처리 중...</div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <script>
         // API 기본 URL 설정 (Vercel 배포 시 자동으로 올바른 URL 사용)
         const API_BASE = window.location.origin;
 
         let groups = {};
         let currentGroupId = null;
+
+        // 로딩 오버레이 표시/숨김
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
 
         // 섹션 축소/확장 토글
         function toggleSection(sectionId) {
@@ -637,33 +661,14 @@
 
         // 수동 동기화 (로딩 표시 포함)
         async function manualSync() {
-            const btn = document.getElementById('refreshBtn');
-            const originalText = btn.textContent;
-
             try {
-                // 로딩 시작
-                btn.disabled = true;
-                btn.textContent = '...';
-                btn.style.opacity = '0.6';
-
-                // 데이터 동기화
+                showLoading();
                 await syncData();
-
-                // 완료 표시
-                btn.textContent = '✓';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                }, 500);
             } catch (error) {
-                // 오류 표시
-                btn.textContent = '!';
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                }, 1000);
+                console.error('동기화 오류:', error);
+                alert('데이터를 불러오는데 실패했습니다.');
             } finally {
-                // 버튼 활성화
-                btn.disabled = false;
-                btn.style.opacity = '1';
+                hideLoading();
             }
         }
 
@@ -702,6 +707,7 @@
             }
 
             try {
+                showLoading();
                 const group = await apiCall('/api/expense/groups', {
                     method: 'POST',
                     body: JSON.stringify({ name })
@@ -713,6 +719,9 @@
                 updateGroupList();
             } catch (error) {
                 console.error('그룹 생성 오류:', error);
+                alert('그룹 생성에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -779,6 +788,7 @@
             if (!confirm('정말 이 그룹을 삭제하시겠습니까?')) return;
 
             try {
+                showLoading();
                 await apiCall(`/api/expense/groups/${groupId}`, {
                     method: 'DELETE'
                 });
@@ -793,6 +803,9 @@
                 updateGroupList();
             } catch (error) {
                 console.error('그룹 삭제 오류:', error);
+                alert('그룹 삭제에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -812,27 +825,31 @@
 
             const nameInput = document.getElementById('memberName');
             const name = nameInput.value.trim();
-            
+
             if (!name) {
                 alert('이름을 입력해주세요.');
                 return;
             }
-            
+
             if (groups[currentGroupId].members.includes(name)) {
                 alert('이미 추가된 구성원입니다.');
                 return;
             }
-            
+
             try {
+                showLoading();
                 await apiCall(`/api/expense/groups/${currentGroupId}/members`, {
                     method: 'POST',
                     body: JSON.stringify({ name })
                 });
-                
+
                 await syncData();
                 nameInput.value = '';
             } catch (error) {
                 console.error('구성원 추가 오류:', error);
+                alert('구성원 추가에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -844,15 +861,19 @@
                     return;
                 }
             }
-            
+
             try {
+                showLoading();
                 await apiCall(`/api/expense/groups/${currentGroupId}/members/${encodeURIComponent(name)}`, {
                     method: 'DELETE'
                 });
-                
+
                 await syncData();
             } catch (error) {
                 console.error('구성원 삭제 오류:', error);
+                alert('구성원 삭제에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
@@ -919,49 +940,57 @@
             const description = document.getElementById('expenseDescription').value.trim();
             const amountStr = document.getElementById('expenseAmount').value.replace(/,/g, '');
             const amount = parseInt(amountStr);
-            
+
             if (!payer) {
                 alert('지출한 사람을 선택해주세요.');
                 return;
             }
-            
+
             if (!description) {
                 alert('지출 내용을 입력해주세요.');
                 return;
             }
-            
+
             if (!amount || amount <= 0) {
                 alert('올바른 금액을 입력해주세요.');
                 return;
             }
-            
+
             try {
+                showLoading();
                 await apiCall(`/api/expense/groups/${currentGroupId}/expenses`, {
                     method: 'POST',
                     body: JSON.stringify({ payer, description, amount })
                 });
 
                 setCookie('lastPayer_' + currentGroupId, payer);
-                
+
                 document.getElementById('expenseDescription').value = '';
                 document.getElementById('expenseAmount').value = '';
-                
+
                 await syncData();
             } catch (error) {
                 console.error('지출 추가 오류:', error);
+                alert('지출 추가에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
         // 지출 삭제
         async function deleteExpense(id) {
             try {
+                showLoading();
                 await apiCall(`/api/expense/groups/${currentGroupId}/expenses/${id}`, {
                     method: 'DELETE'
                 });
-                
+
                 await syncData();
             } catch (error) {
                 console.error('지출 삭제 오류:', error);
+                alert('지출 삭제에 실패했습니다.');
+            } finally {
+                hideLoading();
             }
         }
 
