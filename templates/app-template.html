@@ -202,8 +202,8 @@
     <div class="container">
         <div class="header">
             <h1>앱 이름</h1>
-            <button onclick="refreshData()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 12px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
-                🔄 새로고침
+            <button id="refreshBtn" onclick="manualRefresh()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 10px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
+                갱신
             </button>
         </div>
 
@@ -297,10 +297,42 @@
         }
 
         // 데이터 새로고침
-        function refreshData() {
+        async function refreshData() {
             console.log('데이터 새로고침');
             // 여기에 데이터 새로고침 로직 추가
             // 예: API 호출하여 최신 데이터 가져오기
+        }
+
+        // 수동 새로고침 (로딩 표시 포함)
+        async function manualRefresh() {
+            const btn = document.getElementById('refreshBtn');
+            const originalText = btn.textContent;
+
+            try {
+                // 로딩 시작
+                btn.disabled = true;
+                btn.textContent = '...';
+                btn.style.opacity = '0.6';
+
+                // 데이터 새로고침
+                await refreshData();
+
+                // 완료 표시
+                btn.textContent = '✓';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 500);
+            } catch (error) {
+                // 오류 표시
+                btn.textContent = '!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1000);
+            } finally {
+                // 버튼 활성화
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
         }
 
         // 앱 초기화

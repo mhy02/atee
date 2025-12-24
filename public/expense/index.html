@@ -501,8 +501,8 @@
     <div class="container">
         <div class="header">
             <h1>그룹 지출 정산기</h1>
-            <button onclick="syncData()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 12px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
-                🔄 새로고침
+            <button id="refreshBtn" onclick="manualSync()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.3); color: #4a5568; padding: 6px 10px; font-size: 12px; min-height: auto; border: 1px solid rgba(255,255,255,0.5);" title="데이터 새로고침">
+                갱신
             </button>
         </div>
 
@@ -632,6 +632,38 @@
                 }
             } catch (error) {
                 console.error('동기화 오류:', error);
+            }
+        }
+
+        // 수동 동기화 (로딩 표시 포함)
+        async function manualSync() {
+            const btn = document.getElementById('refreshBtn');
+            const originalText = btn.textContent;
+
+            try {
+                // 로딩 시작
+                btn.disabled = true;
+                btn.textContent = '...';
+                btn.style.opacity = '0.6';
+
+                // 데이터 동기화
+                await syncData();
+
+                // 완료 표시
+                btn.textContent = '✓';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 500);
+            } catch (error) {
+                // 오류 표시
+                btn.textContent = '!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 1000);
+            } finally {
+                // 버튼 활성화
+                btn.disabled = false;
+                btn.style.opacity = '1';
             }
         }
 
