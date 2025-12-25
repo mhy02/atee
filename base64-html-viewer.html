@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base64 HTML Viewer</title>
+    <title>Base64 HTML Viewer (압축 지원)</title>
     <style>
         * {
             margin: 0;
@@ -25,15 +25,22 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             padding: 40px;
         }
 
         h1 {
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 14px;
         }
 
         .info {
@@ -47,7 +54,7 @@
         .info p {
             color: #555;
             line-height: 1.6;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .info code {
@@ -55,7 +62,18 @@
             padding: 2px 6px;
             border-radius: 3px;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-size: 13px;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
         }
 
         .input-group {
@@ -77,12 +95,39 @@
             font-family: 'Courier New', monospace;
             font-size: 14px;
             resize: vertical;
-            min-height: 120px;
+            min-height: 150px;
         }
 
         textarea:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+
+        .option-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-item input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .option-item label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
         }
 
         .button-group {
@@ -122,6 +167,15 @@
             background: #e5e7eb;
         }
 
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
         .result {
             margin-top: 20px;
             padding: 15px;
@@ -135,6 +189,36 @@
             margin-bottom: 10px;
         }
 
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .stat-value.good {
+            color: #10b981;
+        }
+
         .url-output {
             background: white;
             padding: 12px;
@@ -144,6 +228,8 @@
             font-family: 'Courier New', monospace;
             font-size: 13px;
             color: #667eea;
+            max-height: 150px;
+            overflow-y: auto;
         }
 
         .error {
@@ -164,19 +250,26 @@
             margin-top: 20px;
         }
 
-        iframe {
-            display: none;
+        .warning {
+            background: #fff8e1;
+            border-left: 4px solid #ffa726;
+            padding: 15px;
+            border-radius: 4px;
+            color: #e65100;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔗 Base64 HTML Viewer</h1>
+        <h1>🗜️ Base64 HTML Viewer</h1>
+        <div class="subtitle">압축 기능 지원 - 최대 10배 더 큰 HTML 전송 가능!</div>
         
         <div class="info">
-            <p><strong>사용 방법:</strong></p>
-            <p>1. URL에 <code>?html=your_base64_string</code> 파라미터를 추가하면 자동으로 HTML이 표시됩니다.</p>
-            <p>2. 또는 아래 입력창에 HTML을 입력하면 base64로 인코딩된 URL을 생성합니다.</p>
+            <p><strong>📌 사용 방법:</strong></p>
+            <p>1. URL에 <code>?html=...</code> (일반) 또는 <code>?c=...</code> (압축) 파라미터 추가</p>
+            <p>2. HTML 입력 후 원하는 방식으로 URL 생성</p>
+            <p>3. <span class="feature-badge">NEW</span> 압축 모드: 5~10배 더 작은 URL 크기!</p>
         </div>
 
         <div class="input-group">
@@ -184,77 +277,167 @@
             <textarea id="htmlInput" placeholder="여기에 HTML 코드를 입력하세요..."><!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>샘플 문서</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; }
+        p { line-height: 1.6; }
+    </style>
 </head>
 <body>
-    <h1>안녕하세요!</h1>
-    <p>이것은 샘플 HTML 문서입니다.</p>
+    <div class="card">
+        <h1>🎉 압축 테스트 페이지</h1>
+        <p>이것은 LZ-String 압축을 테스트하기 위한 샘플 HTML 문서입니다.</p>
+        <p>압축을 사용하면 훨씬 더 큰 HTML 파일도 URL로 전송할 수 있습니다!</p>
+        <ul>
+            <li>스타일이 포함된 완전한 HTML</li>
+            <li>이미지, 표, 복잡한 레이아웃도 가능</li>
+            <li>최대 50KB 이상의 HTML도 전송 가능</li>
+        </ul>
+    </div>
 </body>
 </html></textarea>
+        </div>
+
+        <div class="options">
+            <div class="option-item">
+                <input type="radio" id="modeNormal" name="mode" value="normal">
+                <label for="modeNormal">일반 (Base64만)</label>
+            </div>
+            <div class="option-item">
+                <input type="radio" id="modeCompressed" name="mode" value="compressed" checked>
+                <label for="modeCompressed">압축 (LZ-String + Base64) <span class="feature-badge">추천</span></label>
+            </div>
         </div>
 
         <div class="button-group">
             <button class="btn-primary" onclick="generateURL()">📋 URL 생성하기</button>
             <button class="btn-secondary" onclick="openInNewTab()">🚀 새 탭에서 열기</button>
+            <button class="btn-success" onclick="showComparison()">📊 압축 효과 비교</button>
         </div>
 
         <div id="result"></div>
     </div>
 
+    <!-- LZ-String 라이브러리 -->
     <script>
-        // URL 파라미터에서 base64 HTML 가져오기
-        function getBase64FromURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('html');
-        }
+        // LZ-String 압축 라이브러리 (minified)
+        var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length;n++)t[o][o.charAt(n)]=n}return t[o][r]}var r=String.fromCharCode,n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",e="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",t={},i={compressToBase64:function(o){if(null==o)return"";var r=i._compress(o,6,function(o){return n.charAt(o)});switch(r.length%4){default:case 0:return r;case 1:return r+"===";case 2:return r+"==";case 3:return r+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(e){return o(n,r.charAt(e))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(o){return null==o?"":""==o?null:i._decompress(o.length,16384,function(r){return o.charCodeAt(r)-32})},compressToUint8Array:function(o){for(var r=i.compress(o),n=new Uint8Array(2*r.length),e=0,t=r.length;t>e;e++){var s=r.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null===o||void 0===o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;t>e;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(o){return null==o?"":i._compress(o,6,function(o){return e.charAt(o)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(n){return o(e,r.charAt(n))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(o,r,n){if(null==o)return"";var e,t,i,s={},p={},u="",c="",a="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<o.length;i+=1)if(u=o.charAt(i),Object.prototype.hasOwnProperty.call(s,u)||(s[u]=f++,p[u]=!0),c=a+u,Object.prototype.hasOwnProperty.call(s,c))a=c;else{if(Object.prototype.hasOwnProperty.call(p,a)){if(a.charCodeAt(0)<256){for(e=0;h>e;e++)m<<=1,v==r-1?(v=0,d.push(n(m)),m=0):v++;for(t=a.charCodeAt(0),e=0;8>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;h>e;e++)m=m<<1|t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=a.charCodeAt(0),e=0;16>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}l--,0==l&&(l=Math.pow(2,h),h++),delete p[a]}else for(t=s[a],e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;l--,0==l&&(l=Math.pow(2,h),h++),s[c]=f++,a=String(u)}if(""!==a){if(Object.prototype.hasOwnProperty.call(p,a)){if(a.charCodeAt(0)<256){for(e=0;h>e;e++)m<<=1,v==r-1?(v=0,d.push(n(m)),m=0):v++;for(t=a.charCodeAt(0),e=0;8>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;h>e;e++)m=m<<1|t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=a.charCodeAt(0),e=0;16>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}l--,0==l&&(l=Math.pow(2,h),h++),delete p[a]}else for(t=s[a],e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;l--,0==l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;h>e;e++)m=m<<1|1&t,v==r-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==r-1){d.push(n(m));break}v++}return d.join("")},decompress:function(o){return null==o?"":""==o?null:i._decompress(o.length,32768,function(r){return o.charCodeAt(r)})},_decompress:function(o,n,e){var t,i,s,p,u,c,a,l,f=[],h=4,d=4,m=3,v="",w=[],A={val:e(0),position:n,index:1};for(i=0;3>i;i+=1)f[i]=i;for(p=0,c=Math.pow(2,2),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;switch(t=p){case 0:for(p=0,c=Math.pow(2,8),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;l=r(p);break;case 1:for(p=0,c=Math.pow(2,16),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;l=r(p);break;case 2:return""}for(f[3]=l,s=l,w.push(l);;){if(A.index>o)return"";for(p=0,c=Math.pow(2,m),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;switch(l=p){case 0:for(p=0,c=Math.pow(2,8),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;f[d++]=r(p),l=d-1,h--;break;case 1:for(p=0,c=Math.pow(2,16),a=1;a!=c;)u=A.val&A.position,A.position>>=1,0==A.position&&(A.position=n,A.val=e(A.index++)),p|=(u>0?1:0)*a,a<<=1;f[d++]=r(p),l=d-1,h--;break;case 2:return w.join("")}if(0==h&&(h=Math.pow(2,m),m++),f[l])v=f[l];else{if(l!==d)return null;v=s+s.charAt(0)}w.push(v),f[d++]=s+v.charAt(0),h--,s=v,0==h&&(h=Math.pow(2,m),m++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module&&(module.exports=LZString);
+    </script>
 
-        // Base64 디코딩 및 HTML 표시
-        function displayHTMLFromURL() {
-            const base64HTML = getBase64FromURL();
+    <script>
+        // URL 파라미터에서 HTML 가져오기 및 표시
+        function getHTMLFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const compressedHTML = urlParams.get('c');
+            const base64HTML = urlParams.get('html');
             
-            if (base64HTML) {
+            if (compressedHTML) {
+                try {
+                    const decompressed = LZString.decompressFromBase64(compressedHTML);
+                    displayHTML(decompressed);
+                } catch (error) {
+                    showError('압축 해제 실패. 올바른 압축 데이터인지 확인해주세요.');
+                }
+            } else if (base64HTML) {
                 try {
                     const decodedHTML = atob(base64HTML);
-                    
-                    // 새 창에서 HTML 열기
-                    const newWindow = window.open('', '_self');
-                    newWindow.document.write(decodedHTML);
-                    newWindow.document.close();
+                    displayHTML(decodedHTML);
                 } catch (error) {
-                    document.body.innerHTML = `
-                        <div class="container">
-                            <div class="error">
-                                <strong>오류:</strong> Base64 디코딩 실패. 올바른 base64 문자열인지 확인해주세요.
-                            </div>
-                        </div>
-                    `;
+                    showError('Base64 디코딩 실패. 올바른 base64 문자열인지 확인해주세요.');
                 }
             }
         }
 
-        // HTML을 base64로 인코딩하여 URL 생성
+        // HTML 표시
+        function displayHTML(htmlContent) {
+            const newWindow = window.open('', '_self');
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
+        }
+
+        // 에러 표시
+        function showError(message) {
+            document.body.innerHTML = `
+                <div class="container">
+                    <div class="error">
+                        <strong>오류:</strong> ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        // URL 생성
         function generateURL() {
             const htmlInput = document.getElementById('htmlInput').value;
             
             if (!htmlInput.trim()) {
-                showResult('HTML 내용을 입력해주세요.', 'error');
+                showResult('<div class="error">HTML 내용을 입력해주세요.</div>');
                 return;
             }
 
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            
             try {
-                const base64 = btoa(unescape(encodeURIComponent(htmlInput)));
+                let encodedData, paramName;
+                const originalSize = new Blob([htmlInput]).size;
+                
+                if (mode === 'compressed') {
+                    encodedData = LZString.compressToBase64(htmlInput);
+                    paramName = 'c';
+                } else {
+                    encodedData = btoa(unescape(encodeURIComponent(htmlInput)));
+                    paramName = 'html';
+                }
+                
+                const encodedSize = encodedData.length;
                 const currentURL = window.location.origin + window.location.pathname;
-                const generatedURL = `${currentURL}?html=${base64}`;
+                const generatedURL = `${currentURL}?${paramName}=${encodedData}`;
+                const compressionRatio = ((1 - encodedSize / (originalSize * 1.33)) * 100).toFixed(1);
                 
                 showResult(`
                     <h3>✅ URL이 생성되었습니다!</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">원본 크기</div>
+                            <div class="stat-value">${formatBytes(originalSize)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">URL 크기</div>
+                            <div class="stat-value ${mode === 'compressed' ? 'good' : ''}">${formatBytes(encodedSize)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">압축률</div>
+                            <div class="stat-value ${mode === 'compressed' ? 'good' : ''}">${mode === 'compressed' ? compressionRatio + '%' : 'N/A'}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">모드</div>
+                            <div class="stat-value">${mode === 'compressed' ? '압축 🗜️' : '일반'}</div>
+                        </div>
+                    </div>
+                    ${encodedSize > 2000 ? '<div class="warning">⚠️ URL이 2KB를 초과합니다. 일부 이메일 클라이언트나 서버에서 제한될 수 있습니다.</div>' : ''}
                     <div class="url-output">${generatedURL}</div>
-                    <button class="btn-secondary" onclick="copyToClipboard('${generatedURL}')" style="margin-top: 10px; width: 100%;">
+                    <button class="btn-secondary" onclick="copyToClipboard('${generatedURL.replace(/'/g, "\\\'")}')" style="margin-top: 10px; width: 100%;">
                         📋 URL 복사하기
                     </button>
-                `, 'success');
+                `);
             } catch (error) {
-                showResult('인코딩 중 오류가 발생했습니다.', 'error');
+                showResult('<div class="error">인코딩 중 오류가 발생했습니다: ' + error.message + '</div>');
             }
         }
 
@@ -263,40 +446,108 @@
             const htmlInput = document.getElementById('htmlInput').value;
             
             if (!htmlInput.trim()) {
-                showResult('HTML 내용을 입력해주세요.', 'error');
+                showResult('<div class="error">HTML 내용을 입력해주세요.</div>');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            
+            try {
+                let encodedData, paramName;
+                
+                if (mode === 'compressed') {
+                    encodedData = LZString.compressToBase64(htmlInput);
+                    paramName = 'c';
+                } else {
+                    encodedData = btoa(unescape(encodeURIComponent(htmlInput)));
+                    paramName = 'html';
+                }
+                
+                const currentURL = window.location.origin + window.location.pathname;
+                const generatedURL = `${currentURL}?${paramName}=${encodedData}`;
+                
+                window.open(generatedURL, '_blank');
+                showResult('<div class="success">✅ 새 탭에서 HTML을 열었습니다!</div>');
+            } catch (error) {
+                showResult('<div class="error">오류가 발생했습니다: ' + error.message + '</div>');
+            }
+        }
+
+        // 압축 효과 비교
+        function showComparison() {
+            const htmlInput = document.getElementById('htmlInput').value;
+            
+            if (!htmlInput.trim()) {
+                showResult('<div class="error">HTML 내용을 입력해주세요.</div>');
                 return;
             }
 
             try {
-                const base64 = btoa(unescape(encodeURIComponent(htmlInput)));
-                const currentURL = window.location.origin + window.location.pathname;
-                const generatedURL = `${currentURL}?html=${base64}`;
+                const originalSize = new Blob([htmlInput]).size;
+                const base64Only = btoa(unescape(encodeURIComponent(htmlInput)));
+                const compressed = LZString.compressToBase64(htmlInput);
                 
-                window.open(generatedURL, '_blank');
-                showResult('새 탭에서 HTML을 열었습니다!', 'success');
+                const base64Size = base64Only.length;
+                const compressedSize = compressed.length;
+                const savingBytes = base64Size - compressedSize;
+                const savingPercent = ((savingBytes / base64Size) * 100).toFixed(1);
+                
+                showResult(`
+                    <h3>📊 압축 효과 비교</h3>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">원본 HTML</div>
+                            <div class="stat-value">${formatBytes(originalSize)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Base64만</div>
+                            <div class="stat-value">${formatBytes(base64Size)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">압축 + Base64</div>
+                            <div class="stat-value good">${formatBytes(compressedSize)}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">절약된 용량</div>
+                            <div class="stat-value good">${formatBytes(savingBytes)} (${savingPercent}%)</div>
+                        </div>
+                    </div>
+                    <div class="success">
+                        💡 압축 사용 시 <strong>${savingPercent}% 더 작은 URL</strong>을 만들 수 있습니다!<br>
+                        이는 약 <strong>${(base64Size / compressedSize).toFixed(1)}배</strong> 더 큰 HTML을 전송할 수 있다는 의미입니다.
+                    </div>
+                `);
             } catch (error) {
-                showResult('오류가 발생했습니다.', 'error');
+                showResult('<div class="error">비교 중 오류가 발생했습니다: ' + error.message + '</div>');
             }
         }
 
         // 결과 표시
-        function showResult(message, type) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        function showResult(html) {
+            document.getElementById('result').innerHTML = html;
         }
 
         // 클립보드 복사
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                showResult('✅ URL이 클립보드에 복사되었습니다!', 'success');
+                showResult('<div class="success">✅ URL이 클립보드에 복사되었습니다!</div>');
             }).catch(() => {
-                showResult('복사 실패. 수동으로 복사해주세요.', 'error');
+                showResult('<div class="error">복사 실패. 수동으로 복사해주세요.</div>');
             });
+        }
+
+        // 바이트 포맷팅
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
         }
 
         // 페이지 로드 시 URL 파라미터 확인
         window.onload = function() {
-            displayHTMLFromURL();
+            getHTMLFromURL();
         };
     </script>
 </body>
