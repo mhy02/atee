@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 HTML Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+
+        .info p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info code {
+            background: #e0e7ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .url-output {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #667eea;
+        }
+
+        .error {
+            background: #fee;
+            border-left: 4px solid #f44;
+            padding: 15px;
+            border-radius: 4px;
+            color: #c33;
+            margin-top: 20px;
+        }
+
+        .success {
+            background: #efe;
+            border-left: 4px solid #4a4;
+            padding: 15px;
+            border-radius: 4px;
+            color: #363;
+            margin-top: 20px;
+        }
+
+        iframe {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Base64 HTML Viewer</h1>
+        
+        <div class="info">
+            <p><strong>사용 방법:</strong></p>
+            <p>1. URL에 <code>?html=your_base64_string</code> 파라미터를 추가하면 자동으로 HTML이 표시됩니다.</p>
+            <p>2. 또는 아래 입력창에 HTML을 입력하면 base64로 인코딩된 URL을 생성합니다.</p>
+        </div>
+
+        <div class="input-group">
+            <label for="htmlInput">HTML 입력:</label>
+            <textarea id="htmlInput" placeholder="여기에 HTML 코드를 입력하세요..."><!DOCTYPE html>
+<html>
+<head>
+    <title>샘플 문서</title>
+</head>
+<body>
+    <h1>안녕하세요!</h1>
+    <p>이것은 샘플 HTML 문서입니다.</p>
+</body>
+</html></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="generateURL()">📋 URL 생성하기</button>
+            <button class="btn-secondary" onclick="openInNewTab()">🚀 새 탭에서 열기</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // URL 파라미터에서 base64 HTML 가져오기
+        function getBase64FromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('html');
+        }
+
+        // Base64 디코딩 및 HTML 표시
+        function displayHTMLFromURL() {
+            const base64HTML = getBase64FromURL();
+            
+            if (base64HTML) {
+                try {
+                    const decodedHTML = atob(base64HTML);
+                    
+                    // 새 창에서 HTML 열기
+                    const newWindow = window.open('', '_self');
+                    newWindow.document.write(decodedHTML);
+                    newWindow.document.close();
+                } catch (error) {
+                    document.body.innerHTML = `
+                        <div class="container">
+                            <div class="error">
+                                <strong>오류:</strong> Base64 디코딩 실패. 올바른 base64 문자열인지 확인해주세요.
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // HTML을 base64로 인코딩하여 URL 생성
+        function generateURL() {
+            const htmlInput = document.getElementById('htmlInput').value;
+            
+            if (!htmlInput.trim()) {
+                showResult('HTML 내용을 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const base64 = btoa(unescape(encodeURIComponent(htmlInput)));
+                const currentURL = window.location.origin + window.location.pathname;
+                const generatedURL = `${currentURL}?html=${base64}`;
+                
+                showResult(`
+                    <h3>✅ URL이 생성되었습니다!</h3>
+                    <div class="url-output">${generatedURL}</div>
+                    <button class="btn-secondary" onclick="copyToClipboard('${generatedURL}')" style="margin-top: 10px; width: 100%;">
+                        📋 URL 복사하기
+                    </button>
+                `, 'success');
+            } catch (error) {
+                showResult('인코딩 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 새 탭에서 열기
+        function openInNewTab() {
+            const htmlInput = document.getElementById('htmlInput').value;
+            
+            if (!htmlInput.trim()) {
+                showResult('HTML 내용을 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const base64 = btoa(unescape(encodeURIComponent(htmlInput)));
+                const currentURL = window.location.origin + window.location.pathname;
+                const generatedURL = `${currentURL}?html=${base64}`;
+                
+                window.open(generatedURL, '_blank');
+                showResult('새 탭에서 HTML을 열었습니다!', 'success');
+            } catch (error) {
+                showResult('오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 결과 표시
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        // 클립보드 복사
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showResult('✅ URL이 클립보드에 복사되었습니다!', 'success');
+            }).catch(() => {
+                showResult('복사 실패. 수동으로 복사해주세요.', 'error');
+            });
+        }
+
+        // 페이지 로드 시 URL 파라미터 확인
+        window.onload = function() {
+            displayHTMLFromURL();
+        };
+    </script>
+</body>
+</html>
