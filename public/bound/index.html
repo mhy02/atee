@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BOMB DODGE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
+- { margin:0; padding:0; box-sizing:border-box; }
+  body {
+  background:#000; overflow:hidden;
+  font-family:‘Orbitron’, monospace;
+  touch-action:none; user-select:none;
+  }
+  canvas { display:block; }
+
+.screen {
+position:fixed; inset:0;
+display:flex; flex-direction:column;
+align-items:center; justify-content:center;
+background:rgba(0,0,0,.88); z-index:100; gap:16px;
+}
+.screen.hidden { display:none; }
+.screen h1 { font-size:clamp(24px,7vw,44px); color:#ffe843; text-shadow:0 0 18px #ffe84388; letter-spacing:4px; }
+.screen h2 { font-size:clamp(14px,4vw,22px); color:#fff; letter-spacing:2px; }
+.screen p  { font-size:clamp(11px,3vw,14px); color:#aaa; text-align:center; line-height:2.2; }
+.btn {
+padding:13px 38px; background:#4cff91; color:#000;
+font-family:‘Orbitron’, monospace; font-size:clamp(13px,3.5vw,18px);
+border:none; cursor:pointer; letter-spacing:3px;
+clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+transition:transform .1s;
+}
+.btn:active { transform:scale(.95); }
+.btn.red { background:#ff4444; color:#fff; }
+
+#hud {
+position:fixed; top:0; left:0; right:0; padding:8px 14px;
+display:flex; justify-content:space-between; align-items:flex-start;
+z-index:50; pointer-events:none;
+background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);
+}
+#hud-left  { font-size:12px; color:#ffe843; letter-spacing:2px; line-height:1.9; }
+#hud-right { font-size:11px; color:#4cff91; text-align:right; line-height:1.9; }
+
+/* Joystick */
+#jwrap {
+position:fixed;
+width:124px; height:124px; pointer-events:none; z-index:50;
+opacity:0; transition:opacity .12s;
+transform:translate(-50%, -50%);
+}
+#jbase {
+position:absolute; inset:0; border-radius:50%;
+background:radial-gradient(circle,#ffffff05 0%,transparent 70%);
+border:2px solid rgba(76,255,145,.25);
+}
+#jbase::before,#jbase::after{content:’’;position:absolute;background:rgba(76,255,145,.14);border-radius:1px;}
+#jbase::before{width:1px;height:55%;top:22%;left:50%;}
+#jbase::after{width:55%;height:1px;top:50%;left:22%;}
+#jstick {
+position:absolute; width:46px; height:46px; border-radius:50%;
+background:radial-gradient(circle at 35% 35%,#7affb8,#1fa855);
+border:2px solid rgba(76,255,145,.5);
+box-shadow:0 0 12px rgba(76,255,145,.4);
+top:50%; left:50%; transform:translate(-50%,-50%);
+}
+
+/* keyboard hint */
+#key-hint {
+display: none;
+}
+</style>
+
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div id="hud-left">
+    <div id="hud-round">ROUND 1</div>
+  </div>
+  <div id="hud-right">
+    <div id="hud-keys">KEY 0/0</div>
+  </div>
+</div>
+
+<div id="jwrap"><div id="jbase"></div><div id="jstick"></div></div>
+
+<div id="key-hint">
+  <div class="kkey blank"></div>
+  <div class="kkey" id="kk-up">▲</div>
+  <div class="kkey blank"></div>
+  <div class="kkey" id="kk-left">◀</div>
+  <div class="kkey" id="kk-down">▼</div>
+  <div class="kkey" id="kk-right">▶</div>
+</div>
+
+<div class="screen" id="s-start">
+  <h1>BOMB DODGE</h1>
+  <h2>ROUND 1</h2>
+  <button class="btn" id="btn-start">START</button>
+</div>
+
+<div class="screen hidden" id="s-dead">
+  <h1>DEAD</h1>
+  <button class="btn red" id="btn-retry">RETRY</button>
+</div>
+
+<div class="screen hidden" id="s-clear">
+  <h1>CLEAR</h1>
+  <h2 id="s-clear-label">ROUND 1</h2>
+  <button class="btn" id="btn-next">NEXT ROUND</button>
+  <button class="btn" style="margin-top:8px;background:rgba(255,255,255,.08)" id="btn-again">RETRY</button>
+</div>
+
+<script>
+// ═══════════════════════════════
+//  Canvas
+// ═══════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, TILE, OX, OY;
+
+const COLS = 7, ROWS = 10;
+
+// Tile per second: 1 tile / 0.5s = 2 tiles/sec
+// terminal velocity = ACCEL / (1 - FRICTION) tiles/frame @60fps
+// want 2/60 ≈ 0.0333 tiles/frame → ACCEL = 0.0333 * (1 - FRICTION)
+const FRICTION   = 0.80;
+const MAX_SPEED  = 2 / 60;           // tiles per frame
+const ACCEL      = MAX_SPEED * (1 - FRICTION); // ≈ 0.00667
+
+const EXPLODE_MS = 550;   // 폭발 애니메이션 길이 (죽음은 시작 순간만)
+const COOL_MS    = 300;   // 냉각 (완전 안전)
+const PAUSE_MS   = 220;   // 스텝 사이 휴식
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  const hudH   = 60;
+  const botH   = 160; // joystick area
+  const availW = W;
+  const availH = H - hudH - botH;
+  TILE = Math.floor(Math.min(availW / COLS, availH / ROWS) * 0.96);
+  OX   = Math.floor((W - TILE * COLS) / 2);
+  OY   = hudH + Math.floor((availH - TILE * ROWS) / 2);
+}
+resize();
+window.addEventListener('resize', () => { resize(); if (gameState !== 'idle') initGame(); });
+
+// ═══════════════════════════════
+//  Tile grid
+// ═══════════════════════════════
+// type: 'normal' | 'wall' | 'lock' | 'key' | 'goal' | 'start'
+// state (normal only): 'safe' | 'explode' | 'cool'
+// deadly: ONLY when state transitions to 'explode' (first frame flag)
+let grid = [];
+let keysTotal = 0, keysCollected = 0;
+
+function initGrid() {
+  const MAP = ROUNDS[currentRound].map;
+  grid = [];
+  keysTotal = 0; keysCollected = 0;
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      const ch = MAP[r][c];
+      // Z=목적지존 바닥(폭탄X, 이동O), S=안전출발존(폭탄X, 이동O)
+      const type = {
+        '.':'normal', 'W':'wall', 'L':'lock', 'K':'key',
+        'G':'goal', 'Z':'goalzone', 'S':'start'
+      }[ch] || 'normal';
+      grid[r][c] = { type, state: 'safe', timer: 0, deadly: false, collected: false };
+      if (type === 'key') keysTotal++;
+    }
+  }
+}
+
+function tileX(c) { return OX + c * TILE; }
+function tileY(r) { return OY + r * TILE; }
+
+// 이동 불가 타일 판정
+function isBlocked(r, c) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
+  const t = grid[r][c];
+  if (t.type === 'wall') return true;
+  if (t.type === 'lock' && keysCollected < keysTotal) return true;
+  return false;
+}
+
+// ═══════════════════════════════
+//  Round definitions
+// ═══════════════════════════════
+// 레이아웃: row0=목적지존(Z/G), rows1~7=폭탄존(7×7), rows8~9=안전출발존(S)
+// Z=목적지존 바닥, G=실제 골, S=안전존, W=벽, L=자물쇠, K=열쇠, .=일반
+const ROUNDS = [
+  {
+    label: 'ROUND 1',
+    map: [
+      ['Z','Z','Z','G','Z','Z','Z'],  // row 0  목적지존
+      ['W','W','W','L','W','W','W'],  // row 1  자물쇠 통로
+      ['.','.','.','.','.','.','.' ],  // row 2
+      ['K','.','W','.','W','.','K'],  // row 3
+      ['.','.','W','.','W','.','.' ],  // row 4
+      ['.','.','.','.','.','.','.' ],  // row 5
+      ['.','.','.','.','.','.','.'],   // row 6
+      ['.','.','.','.','.','.','.' ],  // row 7
+      ['S','S','S','S','S','S','S'],  // row 8  안전출발존
+      ['S','S','S','S','S','S','S'],  // row 9
+    ],
+    buildPattern: () => {
+      const steps = [];
+      const cbA = [], cbB = [];
+      for (let r = 1; r <= 7; r++)
+        for (let c = 0; c < COLS; c++)
+          ((r + c) % 2 === 0 ? cbA : cbB).push([r, c]);
+      // Round 1: checkerboard only
+      for (let i = 0; i < 8; i++) {
+        steps.push({ coords: cbA, explodeMs: 700, pauseMs: 600 });
+        steps.push({ coords: cbB, explodeMs: 700, pauseMs: 600 });
+      }
+      return steps;
+    },
+  },
+  {
+    label: 'ROUND 2',
+    map: [
+      ['Z','Z','G','Z','Z','Z','Z'],
+      ['W','W','L','W','W','W','W'],
+      ['.','.','.','.','.','.','.' ],
+      ['.','W','.','W','.','.','.'],
+      ['K','W','.','W','.','.','.'],
+      ['.','W','.','.','.','.','K'],
+      ['.','.','.','W','.','W','.'],
+      ['.','.','.','.','.','.','.' ],
+      ['S','S','S','S','S','S','S'],
+      ['S','S','S','S','S','S','S'],
+    ],
+    buildPattern: () => {
+      const steps = [];
+      for (let c = 0; c < COLS; c++)
+        steps.push({ coords: Array.from({length:7},(_,i)=>[i+1,c]), explodeMs: 420, pauseMs: 200 });
+      for (let c = COLS-1; c >= 0; c--)
+        steps.push({ coords: Array.from({length:7},(_,i)=>[i+1,c]), explodeMs: 380, pauseMs: 160 });
+      const cbA = [], cbB = [];
+      for (let r = 1; r <= 7; r++)
+        for (let c = 0; c < COLS; c++)
+          ((r + c) % 2 === 0 ? cbA : cbB).push([r, c]);
+      for (let i = 0; i < 4; i++) {
+        steps.push({ coords: cbA, explodeMs: 450, pauseMs: 320 });
+        steps.push({ coords: cbB, explodeMs: 450, pauseMs: 320 });
+      }
+      return steps;
+    },
+  },
+  {
+    label: 'ROUND 3',
+    map: [
+      ['Z','Z','Z','Z','G','Z','Z'],
+      ['W','W','W','W','L','W','W'],
+      ['.','.','.','.','.','.','.' ],
+      ['.','.','.','.','.','W','.'],
+      ['.','K','W','.','.','W','K'],
+      ['.','.','.','W','.','.','.' ],
+      ['.','W','.','.','.','.','.' ],
+      ['.','.','.','.','.','.','.' ],
+      ['S','S','S','S','S','S','S'],
+      ['S','S','S','S','S','S','S'],
+    ],
+    buildPattern: () => {
+      const steps = [];
+      // Row sweeps
+      for (let r = 1; r <= 7; r++)
+        steps.push({ coords: Array.from({length:COLS},(_,c)=>[r,c]), explodeMs: 340, pauseMs: 150 });
+      for (let r = 7; r >= 1; r--)
+        steps.push({ coords: Array.from({length:COLS},(_,c)=>[r,c]), explodeMs: 300, pauseMs: 120 });
+      // Checkerboard — slower
+      const cbA = [], cbB = [];
+      for (let r = 1; r <= 7; r++)
+        for (let c = 0; c < COLS; c++)
+          ((r + c) % 2 === 0 ? cbA : cbB).push([r, c]);
+      for (let i = 0; i < 5; i++) {
+        steps.push({ coords: cbA, explodeMs: 580, pauseMs: 480 });
+        steps.push({ coords: cbB, explodeMs: 580, pauseMs: 480 });
+      }
+      return steps;
+    },
+  },
+];
+
+let currentRound = 0;
+
+// ═══════════════════════════════
+//  Pattern system
+// ═══════════════════════════════
+let pattern = [], patIdx = 0;
+let seqPhase = 'pause', seqTimer = 0;
+
+function initSeq() {
+  pattern = ROUNDS[currentRound].buildPattern();
+  patIdx = 0;
+  seqPhase = 'pause';
+  seqTimer = 1000;
+}
+
+function updateSeq(dt) {
+  seqTimer -= dt;
+  if (seqTimer > 0) return;
+
+  const step = pattern[patIdx % pattern.length];
+  // normal + key + wall(이미필터됨) 만 폭발 — goalzone/goal/start/lock/wall 제외
+  const coords = step.coords.filter(([r,c]) => {
+    if (!grid[r] || !grid[r][c]) return false;
+    const type = grid[r][c].type;
+    return type === 'normal' || type === 'key';
+  });
+
+  if (seqPhase === 'pause') {
+    coords.forEach(([r,c]) => {
+      grid[r][c].state = 'explode';
+      grid[r][c].timer = 0;
+      grid[r][c].deadly = true;
+    });
+    seqPhase = 'exploding';
+    seqTimer = step.explodeMs ?? EXPLODE_MS;
+
+  } else if (seqPhase === 'exploding') {
+    coords.forEach(([r,c]) => {
+      grid[r][c].state = 'cool';
+      grid[r][c].timer = 0;
+      grid[r][c].deadly = false;
+    });
+    patIdx++;
+    seqPhase = 'pause';
+    seqTimer = step.pauseMs ?? PAUSE_MS;
+  }
+}
+
+// deadly 플래그는 1프레임 후 자동 해제 (update 후 즉시)
+function clearDeadlyFlags() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      grid[r][c].deadly = false;
+}
+
+function updateCooldowns(dt) {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      if (t.state !== 'safe') {
+        t.timer += dt;
+        if (t.state === 'cool' && t.timer > COOL_MS) {
+          t.state = 'safe'; t.timer = 0;
+        }
+      }
+    }
+}
+
+// ═══════════════════════════════
+//  Player
+// ═══════════════════════════════
+let player;
+
+function initPlayer() {
+  player = {
+    tx: 3.5, ty: 8.5,   // row 8 안전출발존 중앙
+    vx: 0, vy: 0,
+    alive: true, facing: 1,
+    frame: 0, fTimer: 0,
+    trail: [],
+    deathTimer: 0,
+  };
+}
+
+function playerPixelX() { return OX + player.tx * TILE; }
+function playerPixelY() { return OY + player.ty * TILE; }
+
+// 발 위치만 판정 — 캐릭터 중심보다 약간 아래 한 점
+function checkDeath() {
+  const footR = Math.floor(player.ty + 0.38);
+  const footC = Math.floor(player.tx);
+  if (footR < 0 || footR >= ROWS || footC < 0 || footC >= COLS) return false;
+  return grid[footR][footC].deadly;
+}
+
+// ═══════════════════════════════
+//  Particles
+// ═══════════════════════════════
+let particles = [];
+
+function spawnFire(px, py, n = 3) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 0.4 + Math.random() * 2;
+    particles.push({
+      x: px + (Math.random() - .5) * TILE * .5,
+      y: py + (Math.random() - .5) * TILE * .5,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.2,
+      life: 1, decay: .025 + Math.random() * .025,
+      size: TILE * .05 + Math.random() * TILE * .06,
+      hue: 20 + Math.random() * 30,
+    });
+  }
+}
+
+function spawnDeath(px, py) {
+  for (let i = 0; i < 32; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1 + Math.random() * 5;
+    particles.push({
+      x: px, y: py,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2,
+      life: 1, decay: .016 + Math.random() * .02,
+      size: 3 + Math.random() * 5, hue: 0,
+    });
+  }
+}
+
+function spawnKeyParticles(px, py) {
+  for (let i = 0; i < 20; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 1 + Math.random() * 4;
+    particles.push({
+      x: px, y: py,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 2.5,
+      life: 1, decay: .018 + Math.random() * .018,
+      size: 3 + Math.random() * 4, hue: 50,
+    });
+  }
+}
+
+function updateKeyHud() {
+  const rem = keysTotal - keysCollected;
+  document.getElementById('hud-keys').textContent =
+    rem > 0 ? `KEY ${keysCollected}/${keysTotal}` : 'UNLOCKED';
+}
+
+// ═══════════════════════════════
+//  Input: Joystick
+// ═══════════════════════════════
+const jwrap  = document.getElementById('jwrap');
+const jstick = document.getElementById('jstick');
+const joy = { active: false, touchId: null, cx: 0, cy: 0, dx: 0, dy: 0, maxR: 48 };
+
+function jStart(t) {
+  if (joy.active) return;
+  joy.active = true; joy.touchId = t.identifier;
+  joy.cx = t.clientX; joy.cy = t.clientY;
+  jwrap.style.left = t.clientX + 'px';
+  jwrap.style.top  = t.clientY + 'px';
+  jwrap.style.opacity = '1';
+  jstick.style.transform = 'translate(-50%,-50%)';
+  jstick.style.boxShadow = '0 0 22px rgba(76,255,145,.75)';
+  jMove(t);
+}
+function jMove(t) {
+  if (!joy.active || t.identifier !== joy.touchId) return;
+  const dx = t.clientX - joy.cx, dy = t.clientY - joy.cy;
+  const dist = Math.hypot(dx, dy), cl = Math.min(dist, joy.maxR);
+  const a = Math.atan2(dy, dx);
+  joy.dx = Math.cos(a) * (cl / joy.maxR);
+  joy.dy = Math.sin(a) * (cl / joy.maxR);
+  jstick.style.transform = `translate(calc(-50% + ${Math.cos(a)*cl}px), calc(-50% + ${Math.sin(a)*cl}px))`;
+}
+function jEnd(id) {
+  if (id !== joy.touchId) return;
+  joy.active = false; joy.touchId = null; joy.dx = 0; joy.dy = 0;
+  jwrap.style.opacity = '0';
+  jstick.style.transform = 'translate(-50%,-50%)';
+  jstick.style.boxShadow = '0 0 12px rgba(76,255,145,.4)';
+}
+
+canvas.addEventListener('touchstart',  e => { e.preventDefault(); for (const t of e.changedTouches) jStart(t); }, { passive: false });
+canvas.addEventListener('touchmove',   e => { e.preventDefault(); for (const t of e.changedTouches) jMove(t); },  { passive: false });
+canvas.addEventListener('touchend',    e => { e.preventDefault(); for (const t of e.changedTouches) jEnd(t.identifier); }, { passive: false });
+canvas.addEventListener('touchcancel', e => { e.preventDefault(); for (const t of e.changedTouches) jEnd(t.identifier); }, { passive: false });
+canvas.addEventListener('mousedown', e => jStart({ identifier: 'm', clientX: e.clientX, clientY: e.clientY }));
+canvas.addEventListener('mousemove', e => { if (joy.active) jMove({ identifier: 'm', clientX: e.clientX, clientY: e.clientY }); });
+canvas.addEventListener('mouseup',   () => jEnd('m'));
+
+// ═══════════════════════════════
+//  Input: Keyboard
+// ═══════════════════════════════
+const keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+const keyMap = {
+  ArrowUp:    { id: 'kk-up' },
+  ArrowDown:  { id: 'kk-down' },
+  ArrowLeft:  { id: 'kk-left' },
+  ArrowRight: { id: 'kk-right' },
+};
+
+window.addEventListener('keydown', e => {
+  if (e.key in keys) { e.preventDefault(); keys[e.key] = true; }
+  document.getElementById(keyMap[e.key]?.id)?.classList.add('active');
+});
+window.addEventListener('keyup', e => {
+  if (e.key in keys) { e.preventDefault(); keys[e.key] = false; }
+  document.getElementById(keyMap[e.key]?.id)?.classList.remove('active');
+});
+
+// 키보드 입력을 조이스틱 dx/dy처럼 합산
+function getKeyInput() {
+  let dx = 0, dy = 0;
+  if (keys.ArrowLeft)  dx -= 1;
+  if (keys.ArrowRight) dx += 1;
+  if (keys.ArrowUp)    dy -= 1;
+  if (keys.ArrowDown)  dy += 1;
+  const mag = Math.hypot(dx, dy);
+  if (mag > 0) { dx /= mag; dy /= mag; }
+  return { dx, dy };
+}
+
+// ═══════════════════════════════
+//  Draw
+// ═══════════════════════════════
+const BASE_COLORS = ['#17201a', '#151d17', '#192218', '#161f16'];
+
+function drawBackground() {
+  ctx.fillStyle = '#0a0f0a';
+  ctx.fillRect(0, 0, W, H);
+  for (let y = 0; y < H; y += 3) {
+    ctx.fillStyle = 'rgba(0,0,0,.05)';
+    ctx.fillRect(0, y, W, 1);
+  }
+}
+
+function drawTiles(ts) {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const tx = tileX(c), ty = tileY(r);
+      const t  = grid[r][c];
+
+      // ── 목적지존 (row 0 전체, G 제외) ──
+      if (t.type === 'goalzone') {
+        // 밝은 청록 배경으로 폭탄존과 확연히 구분
+        ctx.fillStyle = '#002a1a';
+        ctx.fillRect(tx, ty, TILE, TILE);
+        const gp = Math.sin(ts * .003 + c * .4) * .3 + .7;
+        ctx.fillStyle = `rgba(0,255,180,${.12 + gp * .06})`;
+        ctx.fillRect(tx, ty, TILE, TILE);
+        // 수평 스캔라인 느낌
+        ctx.fillStyle = 'rgba(0,255,180,.05)';
+        for (let i = 0; i < TILE; i += 4) ctx.fillRect(tx, ty + i, TILE, 2);
+        ctx.strokeStyle = `rgba(0,255,180,${.3 + gp * .2})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tx + .5, ty + .5, TILE - 1, TILE - 1);
+        continue;
+      }
+
+      // ── 목적지 (G) ──
+      if (t.type === 'goal') {
+        const gp = Math.sin(ts * .004) * .4 + .6;
+        ctx.fillStyle = '#0a2010';
+        ctx.fillRect(tx, ty, TILE, TILE);
+        ctx.fillStyle = `rgba(76,255,145,${.1 + gp * .08})`;
+        ctx.fillRect(tx, ty, TILE, TILE);
+        ctx.strokeStyle = `rgba(76,255,145,${.45 + gp * .4})`;
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(tx + 1.5, ty + 1.5, TILE - 3, TILE - 3);
+        ctx.fillStyle = `rgba(76,255,145,${.7 + gp * .25})`;
+        ctx.font = `bold ${Math.floor(TILE * .22)}px Orbitron, monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('GOAL', tx + TILE / 2, ty + TILE / 2);
+        ctx.textBaseline = 'alphabetic';
+        continue;
+      }
+
+      // ── 벽 ──
+      if (t.type === 'wall') {
+        // 진한 회색 돌벽 베이스
+        ctx.fillStyle = '#2c2c2c';
+        ctx.fillRect(tx, ty, TILE, TILE);
+        // 벽돌 줄눈
+        ctx.fillStyle = '#1a1a1a';
+        const bh = Math.floor(TILE / 3);
+        for (let i = 0; i < 3; i++) {
+          const off = (i % 2 === 0) ? 0 : Math.floor(TILE / 2);
+          // 벽돌 면
+          ctx.fillStyle = i % 2 === 0 ? '#363636' : '#323232';
+          ctx.fillRect(tx + off + 1,            ty + i * bh + 1, Math.floor(TILE/2) - 2, bh - 2);
+          ctx.fillRect(tx + off + Math.floor(TILE/2) + 1, ty + i * bh + 1, Math.floor(TILE/2) - 2, bh - 2);
+        }
+        // 줄눈 (수평)
+        ctx.fillStyle = '#111';
+        for (let i = 1; i < 3; i++) ctx.fillRect(tx, ty + i * bh, TILE, 2);
+        // 줄눈 (수직 - 행마다 어긋남)
+        for (let i = 0; i < 3; i++) {
+          const off = (i % 2 === 0) ? Math.floor(TILE/2) : 0;
+          ctx.fillRect(tx + off, ty + i * bh, 2, bh);
+        }
+        // 외곽 테두리 (두껍고 어두움)
+        ctx.strokeStyle = '#0a0a0a';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(tx + 1, ty + 1, TILE - 2, TILE - 2);
+        // 상단/좌측 하이라이트 (3D 느낌)
+        ctx.strokeStyle = 'rgba(255,255,255,.18)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tx+2, ty+TILE-2); ctx.lineTo(tx+2, ty+2); ctx.lineTo(tx+TILE-2, ty+2); ctx.stroke();
+        // 하단/우측 그림자
+        ctx.strokeStyle = 'rgba(0,0,0,.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tx+2, ty+TILE-2); ctx.lineTo(tx+TILE-2, ty+TILE-2); ctx.lineTo(tx+TILE-2, ty+2); ctx.stroke();
+        continue;
+      }
+
+      // ── 자물쇠 ──
+      if (t.type === 'lock') {
+        const unlocked = keysCollected >= keysTotal;
+        if (unlocked) {
+          // 해제된 자물쇠 — 일반 타일과 동일하게
+          const base = BASE_COLORS[(r * 7 + c) % 4];
+          ctx.fillStyle = base;
+          ctx.fillRect(tx, ty, TILE, TILE);
+          const seed = r * 13 + c * 7;
+          ctx.fillStyle = 'rgba(255,255,255,.016)';
+          for (let i = 0; i < 3; i++) {
+            const sx = tx + (seed * 17 + i * 31) % TILE;
+            const sy = ty + (seed * 11 + i * 19) % TILE;
+            ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.strokeStyle = '#252e25';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(tx + .5, ty + .5, TILE - 1, TILE - 1);
+        } else {
+          // 잠긴 상태
+          ctx.fillStyle = '#1a1500';
+          ctx.fillRect(tx, ty, TILE, TILE);
+          const pulse = Math.sin(ts * .006) * .3 + .7;
+          ctx.strokeStyle = `rgba(255,200,0,.5)`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tx + 1, ty + 1, TILE - 2, TILE - 2);
+          const lx = tx + TILE / 2, ly = ty + TILE / 2;
+          const ls = TILE * .18;
+          ctx.fillStyle = `rgba(255,200,0,${pulse})`;
+          ctx.fillRect(lx - ls, ly - ls * .3, ls * 2, ls * 1.4);
+          ctx.strokeStyle = `rgba(255,200,0,${pulse})`;
+          ctx.lineWidth = ls * .45;
+          ctx.beginPath();
+          ctx.arc(lx, ly - ls * .8, ls * .65, Math.PI, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = '#100e00';
+          ctx.beginPath(); ctx.arc(lx, ly + ls * .2, ls * .25, 0, Math.PI * 2); ctx.fill();
+          ctx.fillRect(lx - ls * .1, ly + ls * .2, ls * .2, ls * .5);
+        }
+        continue;
+      }
+
+      // ── 열쇠 ──
+      if (t.type === 'key') {
+        if (t.collected) {
+          ctx.fillStyle = '#111a11';
+          ctx.fillRect(tx, ty, TILE, TILE);
+          ctx.strokeStyle = '#252e25';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(tx + .5, ty + .5, TILE - 1, TILE - 1);
+        } else {
+          const kp = Math.sin(ts * .007 + c) * .4 + .6;
+          ctx.fillStyle = '#1a1500';
+          ctx.fillRect(tx, ty, TILE, TILE);
+          ctx.strokeStyle = `rgba(255,215,0,${.4 + kp * .4})`;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
+          ctx.strokeRect(tx + 1.5, ty + 1.5, TILE - 3, TILE - 3);
+          ctx.setLineDash([]);
+          const kx = tx + TILE / 2, ky = ty + TILE / 2;
+          const ks = TILE * .2;
+          ctx.fillStyle = `rgba(255,215,0,${kp})`;
+          ctx.beginPath(); ctx.arc(kx - ks * .3, ky - ks * .2, ks * .55, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#1a1500';
+          ctx.beginPath(); ctx.arc(kx - ks * .3, ky - ks * .2, ks * .28, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = `rgba(255,215,0,${kp})`;
+          ctx.fillRect(kx - ks * .05, ky - ks * .35, ks * .28, ks * 1.1);
+          ctx.fillRect(kx + ks * .12, ky + ks * .35, ks * .28, ks * .3);
+          ctx.fillRect(kx + ks * .12, ky + ks * .6,  ks * .28, ks * .3);
+        }
+        // 폭발/잔불 오버레이 (normal과 동일하게)
+        if (t.state === 'explode') {
+          const prog = Math.min(1, t.timer / EXPLODE_MS);
+          ctx.fillStyle = '#7a1200';
+          ctx.fillRect(tx, ty, TILE, TILE);
+          const fg = ctx.createRadialGradient(tx+TILE/2, ty+TILE*.6, 0, tx+TILE/2, ty+TILE/2, TILE*.7);
+          fg.addColorStop(0,   `rgba(255,240,120,${1 - prog * .5})`);
+          fg.addColorStop(.35, `rgba(255,110,0,${.9 - prog * .4})`);
+          fg.addColorStop(.75, `rgba(180,30,0,${.6 - prog * .3})`);
+          fg.addColorStop(1,   'rgba(60,0,0,0)');
+          ctx.fillStyle = fg; ctx.fillRect(tx, ty, TILE, TILE);
+          const fl = Math.sin(ts * .04 + c + r) * .3 + .7;
+          ctx.shadowColor = 'rgba(255,100,0,.5)'; ctx.shadowBlur = TILE * .35 * fl;
+          ctx.strokeStyle = `rgba(255,200,60,${fl * .6})`; ctx.lineWidth = 2;
+          ctx.strokeRect(tx+1, ty+1, TILE-2, TILE-2); ctx.shadowBlur = 0;
+          if (Math.random() < .12 && prog < .6) spawnFire(tx+TILE/2, ty+TILE/2, 2);
+        } else if (t.state === 'cool') {
+          const fade = 1 - t.timer / COOL_MS;
+          ctx.fillStyle = `rgba(70,15,0,${fade * .5})`; ctx.fillRect(tx, ty, TILE, TILE);
+          ctx.fillStyle = `rgba(200,70,0,${fade * .4})`;
+          for (let i = 0; i < 4; i++) {
+            const ex = tx + ((c*7+i*5+r*3) % Math.floor(TILE*.8)) + TILE*.1;
+            const ey = ty + ((r*5+i*7+c*3) % Math.floor(TILE*.8)) + TILE*.1;
+            ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI*2); ctx.fill();
+          }
+        }
+        continue;
+      }
+
+      // ── normal / start ──
+      {
+        const isStart = t.type === 'start';
+        if (isStart) {
+          // 안전출발존 — 파란 계열로 폭탄존(녹갈색)과 완전 구분
+          ctx.fillStyle = '#001428';
+          ctx.fillRect(tx, ty, TILE, TILE);
+          const sp = Math.sin(ts * .0025 + c * .35) * .3 + .7;
+          ctx.fillStyle = `rgba(60,160,255,${.12 + sp * .07})`;
+          ctx.fillRect(tx, ty, TILE, TILE);
+          ctx.fillStyle = 'rgba(60,160,255,.04)';
+          for (let i = 0; i < TILE; i += 4) ctx.fillRect(tx, ty + i, TILE, 2);
+          ctx.strokeStyle = `rgba(60,160,255,${.3 + sp * .25})`;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(tx + .5, ty + .5, TILE - 1, TILE - 1);
+        } else {
+          // 일반 타일
+          const base = BASE_COLORS[(r * 7 + c) % 4];
+          ctx.fillStyle = base;
+          ctx.fillRect(tx, ty, TILE, TILE);
+          const seed = r * 13 + c * 7;
+          ctx.fillStyle = 'rgba(255,255,255,.016)';
+          for (let i = 0; i < 3; i++) {
+            const sx = tx + (seed * 17 + i * 31) % TILE;
+            const sy = ty + (seed * 11 + i * 19) % TILE;
+            ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.strokeStyle = '#252e25';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(tx + .5, ty + .5, TILE - 1, TILE - 1);
+
+          // 폭발
+          if (t.state === 'explode') {
+            const prog = Math.min(1, t.timer / EXPLODE_MS);
+            ctx.fillStyle = '#7a1200';
+            ctx.fillRect(tx, ty, TILE, TILE);
+            const fg = ctx.createRadialGradient(tx+TILE/2, ty+TILE*.6, 0, tx+TILE/2, ty+TILE/2, TILE*.7);
+            fg.addColorStop(0,   `rgba(255,240,120,${1 - prog * .5})`);
+            fg.addColorStop(.35, `rgba(255,110,0,${.9 - prog * .4})`);
+            fg.addColorStop(.75, `rgba(180,30,0,${.6 - prog * .3})`);
+            fg.addColorStop(1,   'rgba(60,0,0,0)');
+            ctx.fillStyle = fg;
+            ctx.fillRect(tx, ty, TILE, TILE);
+            const fl = Math.sin(ts * .04 + c + r) * .3 + .7;
+            ctx.shadowColor = 'rgba(255,100,0,.5)';
+            ctx.shadowBlur  = TILE * .35 * fl;
+            ctx.strokeStyle = `rgba(255,200,60,${fl * .6})`;
+            ctx.lineWidth   = 2;
+            ctx.strokeRect(tx+1, ty+1, TILE-2, TILE-2);
+            ctx.shadowBlur  = 0;
+            if (Math.random() < .12 && prog < .6) spawnFire(tx+TILE/2, ty+TILE/2, 2);
+          }
+          // 잔불
+          else if (t.state === 'cool') {
+            const fade = 1 - t.timer / COOL_MS;
+            ctx.fillStyle = `rgba(70,15,0,${fade * .5})`;
+            ctx.fillRect(tx, ty, TILE, TILE);
+            ctx.fillStyle = `rgba(200,70,0,${fade * .4})`;
+            for (let i = 0; i < 4; i++) {
+              const ex = tx + ((c*7+i*5+r*3) % Math.floor(TILE*.8)) + TILE*.1;
+              const ey = ty + ((r*5+i*7+c*3) % Math.floor(TILE*.8)) + TILE*.1;
+              ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI*2); ctx.fill();
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawPlayer(ts) {
+  const px = playerPixelX(), py = playerPixelY();
+  const spd = Math.hypot(player.vx, player.vy);
+  const PR  = TILE * 0.32;
+
+  // trail
+  player.trail.forEach(tr => {
+    const r = Math.max(0, PR * .45 * tr.life);
+    if (r <= 0) return;
+    ctx.beginPath(); ctx.arc(tr.x, tr.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(76,255,145,${tr.life * .14})`; ctx.fill();
+  });
+
+  // shadow
+  ctx.beginPath();
+  ctx.ellipse(px, py + PR * .7, PR * .6, PR * .18, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fill();
+
+  if (!player.alive) {
+    const df = Math.max(0, 1 - player.deathTimer / 700);
+    if (df > 0) {
+      ctx.beginPath(); ctx.arc(px, py, Math.max(0, PR * 1.8 * df), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,60,60,${df * .55})`; ctx.fill();
+    }
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(px, py);
+  if (player.facing < 0) ctx.scale(-1, 1);
+
+  const s   = PR;
+  const bob = Math.sin(ts * .015) * (spd > .005 ? 1.5 : 0);
+  const leg = Math.sin(ts * .02)  * (spd > .005 ? s * .28 : 0);
+
+  // legs
+  ctx.fillStyle = '#2a5c2a';
+  ctx.fillRect(-s*.35, s*.28+bob, s*.28, s*.4+leg*.35);
+  ctx.fillRect(s*.08,  s*.28+bob, s*.28, s*.4-leg*.35);
+  // boots
+  ctx.fillStyle = '#1a3c1a';
+  ctx.fillRect(-s*.4,  s*.6+bob, s*.32, s*.2);
+  ctx.fillRect(s*.06,  s*.6+bob, s*.32, s*.2);
+  // body
+  ctx.fillStyle = '#3a7a3a';
+  ctx.fillRect(-s*.45, -s*.28+bob, s*.9, s*.6);
+  ctx.fillStyle = 'rgba(76,255,145,.1)';
+  ctx.fillRect(-s*.35, -s*.18+bob, s*.7, s*.44);
+  // arms
+  ctx.fillStyle = '#2a5c2a';
+  ctx.fillRect(-s*.68, -s*.18+bob + leg*.18, s*.26, s*.42);
+  ctx.fillRect(s*.42,  -s*.18+bob - leg*.18, s*.26, s*.42);
+  // gun
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(s*.64, -s*.12+bob, s*.42, s*.16);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(s*.94, -s*.15+bob, s*.08, s*.22);
+  // head
+  ctx.fillStyle = '#2a5c2a';
+  ctx.beginPath(); ctx.arc(0, -s*.55+bob, s*.42, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a3c1a';
+  ctx.fillRect(-s*.45, -s*.62+bob, s*.9, s*.14);
+  ctx.fillStyle = 'rgba(76,255,145,.55)';
+  ctx.fillRect(-s*.22, -s*.62+bob, s*.48, s*.22);
+  ctx.fillStyle = 'rgba(200,255,220,.5)';
+  ctx.fillRect(s*.1, -s*.6+bob, s*.12, s*.12);
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const r = Math.max(0, p.size * p.life);
+    if (r <= 0) continue;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue},100%,60%,${p.life})`; ctx.fill();
+  }
+}
+
+// ═══════════════════════════════
+//  Game state machine
+// ═══════════════════════════════
+let gameState = 'idle';
+
+function initGame() {
+  initGrid();
+  initPlayer();
+  initSeq();
+  particles = [];
+  // 현재 라운드 골 위치 캐싱
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c].type === 'goal') { goalRow = r; goalCol = c; }
+  // HUD 라운드 표시
+  document.getElementById('hud-round').textContent = ROUNDS[currentRound].label;
+}
+
+let goalRow = 0, goalCol = 3;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  if (id) document.getElementById(id).classList.remove('hidden');
+}
+
+function startGame(nextRound = false) {
+  if (nextRound) {
+    currentRound = (currentRound + 1) % ROUNDS.length;
+  } else {
+    currentRound = 0;
+  }
+  showScreen(null);
+  initGame();
+  updateKeyHud();
+  gameState = 'playing';
+}
+
+function retryGame() {
+  showScreen(null);
+  initGame();
+  updateKeyHud();
+  gameState = 'playing';
+}
+
+document.getElementById('btn-start').addEventListener('click', () => startGame(false));
+document.getElementById('btn-retry').addEventListener('click', () => retryGame());
+document.getElementById('btn-next').addEventListener('click', () => startGame(true));
+document.getElementById('btn-again').addEventListener('click', () => retryGame());
+
+// ═══════════════════════════════
+//  Main loop
+// ═══════════════════════════════
+let lastTime = 0;
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(ts - lastTime, 50);
+  lastTime = ts;
+
+  drawBackground();
+  if (!grid.length) { drawBackground(); return; }
+  drawTiles(ts);
+
+  if (gameState === 'playing') {
+
+    // ── 시퀀서 업데이트 (deadly 플래그 세팅) ──
+    updateSeq(dt);
+
+    // ── 죽음 판정 (deadly 플래그가 세팅된 직후, 이 프레임에만) ──
+    if (player.alive && checkDeath()) {
+      player.alive = false;
+      gameState = 'dead';
+      spawnDeath(playerPixelX(), playerPixelY());
+      jEnd(joy.touchId);
+      setTimeout(() => showScreen('s-dead'), 950);
+    }
+
+    // ── deadly 플래그 즉시 해제 (이 프레임 이후엔 판정 없음) ──
+    clearDeadlyFlags();
+
+    // ── 타일 타이머 업데이트 ──
+    updateCooldowns(dt);
+
+    // ── 플레이어 이동 ──
+    const kIn = getKeyInput();
+    const inX = joy.dx !== 0 ? joy.dx : kIn.dx;
+    const inY = joy.dy !== 0 ? joy.dy : kIn.dy;
+
+    player.vx += inX * ACCEL;
+    player.vy += inY * ACCEL;
+    const mag = Math.hypot(player.vx, player.vy);
+    if (mag > MAX_SPEED) { player.vx = player.vx / mag * MAX_SPEED; player.vy = player.vy / mag * MAX_SPEED; }
+    if (inX > .1) player.facing = 1;
+    else if (inX < -.1) player.facing = -1;
+
+    player.vx *= FRICTION;
+    player.vy *= FRICTION;
+
+    // dt 보정: 목표는 60fps 기준이므로 dt/16.67배 스케일
+    const dtf = dt / 16.67;
+    const PR = 0.22; // 충돌 반경
+
+    // ── X 축 이동 (이동 방향 쪽만 체크) ──
+    let nx = player.tx + player.vx * dtf;
+    // 플레이어가 수직으로 차지하는 행 범위 (안쪽 여유 0.04)
+    const topRow    = Math.floor(player.ty - PR + 0.04);
+    const bottomRow = Math.floor(player.ty + PR - 0.04);
+    if (player.vx > 0) {
+      const col = Math.floor(nx + PR);
+      if (isBlocked(topRow, col) || isBlocked(bottomRow, col)) {
+        nx = col - PR - 0.001;
+        player.vx = 0;
+      }
+    } else if (player.vx < 0) {
+      const col = Math.floor(nx - PR);
+      if (isBlocked(topRow, col) || isBlocked(bottomRow, col)) {
+        nx = col + 1 + PR + 0.001;
+        player.vx = 0;
+      }
+    }
+
+    // ── Y 축 이동 (이동 방향 쪽만 체크) ──
+    let ny = player.ty + player.vy * dtf;
+    // 플레이어가 수평으로 차지하는 열 범위 (안쪽 여유 0.04)
+    const leftCol  = Math.floor(nx - PR + 0.04);
+    const rightCol = Math.floor(nx + PR - 0.04);
+    if (player.vy > 0) {
+      const row = Math.floor(ny + PR);
+      if (isBlocked(row, leftCol) || isBlocked(row, rightCol)) {
+        ny = row - PR - 0.001;
+        player.vy = 0;
+      }
+    } else if (player.vy < 0) {
+      const row = Math.floor(ny - PR);
+      if (isBlocked(row, leftCol) || isBlocked(row, rightCol)) {
+        ny = row + 1 + PR + 0.001;
+        player.vy = 0;
+      }
+    }
+
+    player.tx = Math.max(PR, Math.min(COLS - PR, nx));
+    player.ty = Math.max(PR, Math.min(ROWS - PR, ny));
+
+    // ── 열쇠 획득 ──
+    const kr = Math.floor(player.ty + 0.38);
+    const kc = Math.floor(player.tx);
+    if (kr >= 0 && kr < ROWS && kc >= 0 && kc < COLS) {
+      const kt = grid[kr][kc];
+      if (kt.type === 'key' && !kt.collected) {
+        kt.collected = true;
+        keysCollected++;
+        spawnKeyParticles(playerPixelX(), playerPixelY());
+        updateKeyHud();
+      }
+    }
+
+    // ── 골 판정 ──
+    if (Math.floor(player.ty) === goalRow && Math.floor(player.tx) === goalCol) {
+      gameState = 'clear';
+      spawnFire(playerPixelX(), playerPixelY(), 25);
+      jEnd(joy.touchId);
+      const isLast = currentRound === ROUNDS.length - 1;
+      document.getElementById('s-clear-label').textContent = isLast
+        ? 'ALL CLEAR' : ROUNDS[currentRound].label;
+      document.getElementById('btn-next').textContent = isLast ? 'RESTART' : `ROUND ${currentRound + 2}`;
+      setTimeout(() => showScreen('s-clear'), 700);
+    }
+
+    // ── trail ──
+    const spd = Math.hypot(player.vx, player.vy);
+    if (spd > .003) player.trail.push({ x: playerPixelX(), y: playerPixelY(), life: 1 });
+    for (let i = player.trail.length - 1; i >= 0; i--) {
+      player.trail[i].life -= .065 * dtf;
+      if (player.trail[i].life <= 0) player.trail.splice(i, 1);
+    }
+
+    // ── HUD ──
+    document.getElementById('hud-keys').textContent =
+      keysCollected < keysTotal ? `KEY ${keysCollected}/${keysTotal}` : 'UNLOCKED';
+
+  } else if (gameState === 'dead') {
+    player.deathTimer += dt;
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * (dt/16.67); p.y += p.vy * (dt/16.67);
+      p.vy += .1 * (dt/16.67); p.life -= p.decay * (dt/16.67);
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  // 파티클 업데이트 (playing 중)
+  if (gameState === 'playing') {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * (dt/16.67); p.y += p.vy * (dt/16.67);
+      p.vy += .08 * (dt/16.67); p.life -= p.decay * (dt/16.67);
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  drawParticles();
+  if (player) drawPlayer(ts);
+}
+
+// ─── Boot ───
+initGame();
+showScreen('s-start');
+requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
